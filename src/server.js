@@ -4,6 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import compression from "compression";
+import cron from "node-cron";
 
 import chatRoutes from "./routes/chat.routes.js";
 import memoryRoutes from "./routes/memory.routes.js";
@@ -14,14 +16,19 @@ import chatSessionRoutes from "./routes/chatSession.routes.js";
 
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { rateLimiter } from "./middlewares/rateLimiter.js";
-import { logError } from "./utils/logger.js"; // 🔥 ADD THIS
-
-import cron from "node-cron";
+import { logError } from "./utils/logger.js";
 import { decayMemories } from "./jobs/memoryDecay.job.js";
-import compression from "compression";
 
 const app = express();
 
+// ===============================
+// 🔧 TRUST PROXY (IMPORTANT FOR RENDER)
+// ===============================
+app.set("trust proxy", 1);
+
+// ===============================
+// 🔑 ENV CHECK
+// ===============================
 console.log("🔑 ENV CHECK:");
 console.log("OPENROUTER:", !!process.env.OPENROUTER_API_KEY);
 console.log("GEMINI:", !!process.env.GEMINI_API_KEY);
@@ -29,7 +36,7 @@ console.log("GROQ:", !!process.env.GROQ_API_KEY);
 console.log("HF:", !!process.env.HUGGINGFACE_API_KEY);
 
 // ===============================
-// 🔥 CRASH LOGGING (STEP 4 — HERE)
+// 🔥 CRASH LOGGING
 // ===============================
 process.on("uncaughtException", (err) => {
   logError("CRASH_UNCAUGHT_EXCEPTION", err);
@@ -51,17 +58,25 @@ mongoose
   })
   .catch((err) => {
     logError("DB_CONNECTION_ERROR", err);
+    process.exit(1); // 🔥 STOP app if DB fails
   });
 
 // ===============================
 // 🔐 MIDDLEWARE
 // ===============================
 app.use(cors());
+app.use(compression()); // ✅ FIXED POSITION
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 🔥 Rate limit (ONLY ONCE)
 app.use(rateLimiter);
+
+// ===============================
+// ✅ ROOT ROUTE (IMPORTANT FIX)
+// ===============================
+app.get("/", (req, res) => {
+  res.send("🚀 DevU AI Backend is running!");
+});
 
 // ===============================
 // 🚀 ROUTES
@@ -72,7 +87,6 @@ app.use("/api", videoRoutes);
 app.use("/api", audioRoutes);
 app.use("/api", documentRoutes);
 app.use("/api/chats", chatSessionRoutes);
-app.use(compression());
 
 // ===============================
 // 🧠 MEMORY DECAY CRON
@@ -104,5 +118,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 DevU AI Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 DevU AI Backend running on PORT ${PORT}`);
 });
