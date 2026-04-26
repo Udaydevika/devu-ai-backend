@@ -1,3 +1,4 @@
+// fix path
 import { extractFrames } from "../../utils/extractframes.js";
 import fs from "fs";
 
