@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { extractFrames } from "../utils/extractFrames.js";
+import { extractFrames } from "../utils/extractframes.js";
 import axios from "axios";
 
 export const handleVideoUpload = async (req, res) => {
