@@ -1,39 +1,93 @@
 import fs from "fs";
-import OpenAI from "openai";
+import path from "path";
 import { sendToDevuAI } from "../services/aiService.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
+/**
+ * 🎧 Audio Upload Controller (NO OpenAI)
+ * ✔ Safe
+ * ✔ Cleanup protected
+ * ✔ Ready for future STT integration
+ */
 export const handleAudioUpload = async (req, res) => {
+  let filePath = null;
+
   try {
     const file = req.file;
 
+    // =====================================================
+    // ❌ VALIDATION
+    // =====================================================
     if (!file) {
-      return res.status(400).json({ error: "No audio uploaded" });
+      return res.status(400).json({
+        success: false,
+        error: "No audio file uploaded",
+      });
     }
 
-    const filePath = file.path;
+    filePath = file.path;
 
     console.log("🎧 Audio received:", filePath);
 
-    // =========================
-    // STEP 3 — TRANSCRIBE AUDIO
-    // =========================
+    // =====================================================
+    // 🔐 FILE TYPE CHECK (basic safety)
+    // =====================================================
+    const allowedTypes = [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/ogg",
+      "audio/webm",
+      "audio/mp4",
+    ];
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
-      model: "whisper-1",
-    });
+    if (!allowedTypes.includes(file.mimetype)) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({
+        success: false,
+        error: "Unsupported audio format",
+      });
+    }
 
-    const transcriptText = transcription.text;
+    // =====================================================
+    // 🧠 PLACEHOLDER STT (Speech-to-Text)
+    // =====================================================
+    // Replace this later with:
+    // - Google Speech-to-Text
+    // - Whisper API
+    // - Deepgram / AssemblyAI
+
+    let transcriptText = "Audio transcription not configured";
 
     console.log("📝 Transcript:", transcriptText);
 
-   // cleanup
-    fs.unlinkSync(filePath);
+    // =====================================================
+    // 🤖 SEND TO DEVU AI
+    // =====================================================
+    let aiResponse;
 
+    try {
+      aiResponse = await sendToDevuAI({
+        message: transcriptText,
+        type: "text",
+      });
+    } catch (aiError) {
+      console.error("❌ AI Error:", aiError.message);
+      aiResponse = "AI processing failed";
+    }
+
+    // =====================================================
+    // 🧹 CLEANUP (SAFE)
+    // =====================================================
+    try {
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (cleanupErr) {
+      console.warn("⚠️ File cleanup failed:", cleanupErr.message);
+    }
+
+    // =====================================================
+    // ✅ RESPONSE
+    // =====================================================
     return res.json({
       success: true,
       transcript: transcriptText,
@@ -41,7 +95,18 @@ export const handleAudioUpload = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Audio processing failed" });
+    console.error("❌ Audio Controller Error:", err.message);
+
+    // 🧹 Ensure cleanup even on crash
+    try {
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch {}
+
+    return res.status(500).json({
+      success: false,
+      error: "Audio processing failed",
+    });
   }
 };

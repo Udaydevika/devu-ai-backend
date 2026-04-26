@@ -1,64 +1,64 @@
 import fetch from "node-fetch";
 
-const OPENROUTER_URL =
-  "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /**
- * 🔥 DevU AI — OpenRouter Streaming Service
- * ✔ text
- * ✔ multi-turn
- * ✔ multiple images
- * ✔ SSE streaming
+ * 🔥 DevU AI — OpenRouter Streaming Service (FIXED)
  */
 export async function streamOpenRouter(
-  messages,
+  messages = [],
   files = [],
   model = "openai/gpt-4o-mini"
 ) {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
+  // ❌ HARD FAIL if key missing
   if (!apiKey) {
-    throw new Error("❌ OPENROUTER_API_KEY missing");
+    console.error("❌ OPENROUTER_API_KEY missing in ENV");
+    throw new Error("OpenRouter not configured");
   }
 
-  console.log("========== OPENROUTER DEBUG ==========");
-  console.log("Incoming model:", model);
+  console.log("========== OPENROUTER ==========");
+  console.log("Model input:", model);
   console.log("Messages:", messages.length);
   console.log("Files:", files.length);
-  console.log("======================================");
+  console.log("================================");
 
   // =====================================================
-  // 🧠 SAFE MODEL MAPPING
+  // 🧠 MODEL MAPPING (SAFE)
   // =====================================================
-
   let finalModel = "openai/gpt-4o-mini";
 
-  if (model === "gpt4o" || model === "gpt-4o") {
-    finalModel = "openai/gpt-4o";
+  switch (model) {
+    case "gpt4o":
+    case "gpt-4o":
+      finalModel = "openai/gpt-4o";
+      break;
+
+    case "gpt-4o-mini":
+      finalModel = "openai/gpt-4o-mini";
+      break;
+
+    default:
+      finalModel = model || "openai/gpt-4o-mini";
   }
 
-  if (model === "gpt-4o-mini") {
-    finalModel = "openai/gpt-4o-mini";
-  }
-
-  console.log("🚀 Using OpenRouter model:", finalModel);
+  console.log("🚀 Using model:", finalModel);
 
   // =====================================================
-  // 🧠 BUILD CHAT MESSAGES
+  // 🧠 FORMAT MESSAGES
   // =====================================================
-
   const chatMessages = messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
 
   // =====================================================
-  // 🖼️ IMAGE ATTACHMENT SUPPORT
+  // 🖼️ IMAGE SUPPORT
   // =====================================================
-
-  if (files.length > 0) {
+  if (files?.length > 0) {
     const images = files
-      .filter((f) => f.mimeType?.startsWith("image/"))
+      .filter((f) => f?.mimeType?.startsWith("image/"))
       .map((f) => ({
         type: "image_url",
         image_url: {
@@ -72,15 +72,14 @@ export async function streamOpenRouter(
         .findIndex((m) => m.role === "user");
 
       if (lastUserIndex !== -1) {
-        const realIndex =
-          chatMessages.length - 1 - lastUserIndex;
+        const realIndex = chatMessages.length - 1 - lastUserIndex;
 
         chatMessages[realIndex] = {
           role: "user",
           content: [
             {
               type: "text",
-              text: chatMessages[realIndex].content,
+              text: chatMessages[realIndex].content || "",
             },
             ...images,
           ],
@@ -90,70 +89,79 @@ export async function streamOpenRouter(
   }
 
   // =====================================================
-  // 🚀 OPENROUTER REQUEST
+  // 🚀 API CALL
   // =====================================================
+  let res;
 
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-      "HTTP-Referer": "https://devu.ai",
-      "X-Title": "DevU AI",
-    },
-    body: JSON.stringify({
-      model: finalModel,
-      stream: true,
-      max_tokens: 1024,
-      messages: chatMessages,
-    }),
-  });
+  try {
+    res = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        "HTTP-Referer": "https://devu.ai",
+        "X-Title": "DevU AI",
+      },
+      body: JSON.stringify({
+        model: finalModel,
+        stream: true,
+        max_tokens: 1024,
+        messages: chatMessages,
+      }),
+    });
+  } catch (err) {
+    console.error("❌ Network error:", err.message);
+    throw new Error("OpenRouter request failed");
+  }
 
-  console.log("OpenRouter status:", res.status);
+  console.log("📡 Status:", res.status);
 
   if (!res.ok) {
-    const err = await res.text();
-    console.error("❌ OpenRouter error:", err);
-    throw new Error(err);
+    const errText = await res.text();
+    console.error("❌ OpenRouter error:", errText);
+    throw new Error(errText);
   }
 
-  console.log("✅ OpenRouter streaming started");
+  console.log("✅ Streaming started");
 
   // =====================================================
-  // 🔥 STREAM PARSER
+  // 🔥 STREAM PARSER (IMPROVED)
   // =====================================================
-const decoder = new TextDecoder();
+  const decoder = new TextDecoder();
 
-async function* streamTokens() {
-  let buffer = "";
+  async function* streamTokens() {
+    let buffer = "";
 
-  for await (const chunk of res.body) {
-    buffer += decoder.decode(chunk, { stream: true });
+    try {
+      for await (const chunk of res.body) {
+        buffer += decoder.decode(chunk, { stream: true });
 
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-    for (const line of lines) {
-      if (!line.startsWith("data:")) continue;
+        for (const line of lines) {
+          if (!line.startsWith("data:")) continue;
 
-      const raw = line.replace("data:", "").trim();
+          const raw = line.replace("data:", "").trim();
 
-      if (!raw) continue;
-      if (raw === "[DONE]") return;
+          if (!raw) continue;
+          if (raw === "[DONE]") return;
 
-      try {
-        const json = JSON.parse(raw);
-        const token = json?.choices?.[0]?.delta?.content;
+          try {
+            const json = JSON.parse(raw);
+            const token = json?.choices?.[0]?.delta?.content;
 
-        if (typeof token === "string" && token.length > 0) {
-          yield token;
+            if (token) yield token;
+          } catch {
+            // ignore parse errors
+          }
         }
-      } catch {}
+      }
+    } catch (err) {
+      console.error("❌ Stream error:", err.message);
     }
   }
-}
 
-// ✅ THIS IS THE FIX
-return streamTokens();
+  return streamTokens();
 }
