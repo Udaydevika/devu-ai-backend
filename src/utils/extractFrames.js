@@ -7,32 +7,36 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 export async function extractFrames(videoPath) {
   return new Promise((resolve, reject) => {
-    const outputDir = path.join("frames");
+    const outputDir = path.join(process.cwd(), "frames");
 
-    // create frames folder if not exists
+    // create folder if not exists
     if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir);
+      fs.mkdirSync(outputDir, { recursive: true });
     }
 
     ffmpeg(videoPath)
       .on("end", () => {
-        const files = fs.readdirSync(outputDir)
-          .filter(f => f.endsWith(".png"))
-          .map(f => path.join(outputDir, f));
+        try {
+          const files = fs.readdirSync(outputDir)
+            .filter(f => f.endsWith(".png"))
+            .map(f => path.join(outputDir, f));
 
-        resolve(files);
+          resolve(files);
+
+          // 🧹 cleanup AFTER resolve
+          fs.rmSync(outputDir, { recursive: true, force: true });
+        } catch (err) {
+          reject(err);
+        }
       })
       .on("error", (err) => {
-        console.error("FFmpeg error:", err);
+        console.error("❌ FFmpeg error:", err);
         reject(err);
       })
       .screenshots({
-        count: 5, // number of frames
+        count: 5,
         folder: outputDir,
         filename: "frame-%i.png"
-      })
-      .on("end", () => {
-        fs.rmSync("frames", { recursive: true, force: true });
       });
   });
 }
