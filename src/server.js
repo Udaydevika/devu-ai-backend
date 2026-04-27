@@ -21,23 +21,19 @@ import { decayMemories } from "./jobs/memoryDecay.job.js";
 
 const app = express();
 
-// ===============================
-// 🔧 TRUST PROXY (IMPORTANT FOR RENDER)
-// ===============================
-app.set("trust proxy", 1);
-
-// ===============================
+// ====================================
 // 🔑 ENV CHECK
-// ===============================
+// ====================================
 console.log("🔑 ENV CHECK:");
 console.log("OPENROUTER:", !!process.env.OPENROUTER_API_KEY);
 console.log("GEMINI:", !!process.env.GEMINI_API_KEY);
 console.log("GROQ:", !!process.env.GROQ_API_KEY);
 console.log("HF:", !!process.env.HUGGINGFACE_API_KEY);
+console.log("MONGO:", !!process.env.MONGO_URI);
 
-// ===============================
+// ====================================
 // 🔥 CRASH LOGGING
-// ===============================
+// ====================================
 process.on("uncaughtException", (err) => {
   logError("CRASH_UNCAUGHT_EXCEPTION", err);
 });
@@ -46,9 +42,9 @@ process.on("unhandledRejection", (err) => {
   logError("CRASH_UNHANDLED_REJECTION", err);
 });
 
-// ===============================
+// ====================================
 // 🔥 MONGODB CONNECTION
-// ===============================
+// ====================================
 mongoose
   .connect(process.env.MONGO_URI, {
     serverSelectionTimeoutMS: 5000,
@@ -58,29 +54,27 @@ mongoose
   })
   .catch((err) => {
     logError("DB_CONNECTION_ERROR", err);
-    process.exit(1); // 🔥 STOP app if DB fails
   });
 
-// ===============================
+// ====================================
 // 🔐 MIDDLEWARE
-// ===============================
+// ====================================
 app.use(cors());
-app.use(compression()); // ✅ FIXED POSITION
-app.use(express.json({ limit: "5mb" }));
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-
 app.use(rateLimiter);
 
-// ===============================
-// ✅ ROOT ROUTE (IMPORTANT FIX)
-// ===============================
+// ====================================
+// 🟢 HEALTH CHECK ROUTE
+// ====================================
 app.get("/", (req, res) => {
   res.send("🚀 DevU AI Backend is running!");
 });
 
-// ===============================
-// 🚀 ROUTES
-// ===============================
+// ====================================
+// 🚀 API ROUTES
+// ====================================
 app.use("/api", chatRoutes);
 app.use("/api", memoryRoutes);
 app.use("/api", videoRoutes);
@@ -88,9 +82,9 @@ app.use("/api", audioRoutes);
 app.use("/api", documentRoutes);
 app.use("/api/chats", chatSessionRoutes);
 
-// ===============================
+// ====================================
 // 🧠 MEMORY DECAY CRON
-// ===============================
+// ====================================
 cron.schedule("0 */6 * * *", async () => {
   console.log("⏰ Running memory decay job...");
   try {
@@ -100,23 +94,25 @@ cron.schedule("0 */6 * * *", async () => {
   }
 });
 
-// ===============================
-// 🛑 404 HANDLER
-// ===============================
+// ====================================
+// 🛑 404 ROUTE HANDLER
+// ====================================
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
   });
 });
 
-// ===============================
+// ====================================
 // 🔥 GLOBAL ERROR HANDLER
-// ===============================
+// ====================================
 app.use(errorHandler);
 
-// ===============================
+// ====================================
+// 🚀 SERVER START
+// ====================================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 DevU AI Backend running on PORT ${PORT}`);
+  console.log(`🚀 DevU AI Backend running on port ${PORT}`);
 });

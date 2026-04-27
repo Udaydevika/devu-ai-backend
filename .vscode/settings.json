@@ -1,0 +1,13 @@
+{
+"files.exclude": {
+  "**/node_modules": true,
+  "**/.dart_tool": true,
+  "**/build": true,
+  "**/.env": true,
+  "**/ios/Pods": true,
+  "**/android/.gradle": true,
+  "**/.git": true,
+"**/.expo": true,
+"**/coverage": true
+}
+}

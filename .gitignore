@@ -1,3 +1,4 @@
-node_modules
-.env
-.env.*
+node_modules/
+backend/node_modules/
+build/
+.dart_tool/
