@@ -1,4 +1,36 @@
+# Secrets
+.env
+backend/.env
+
+# Node
 node_modules/
 backend/node_modules/
-build/
+npm-debug.log*
+yarn-error.log*
+
+# Flutter / Dart
 .dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/App.framework
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# macOS / Windows junk
+.DS_Store
+Thumbs.db

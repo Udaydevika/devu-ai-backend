@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
 const HF_URL =
-  "https://router.huggingface.co/hf-inference/models/google/gemma-2-2b-it";
+"https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
 
 export async function streamHuggingFace(messages) {
   if (!process.env.HUGGINGFACE_API_KEY) {
@@ -10,8 +10,8 @@ export async function streamHuggingFace(messages) {
 
   // ✅ BETTER PROMPT FORMAT
   const prompt = messages
-    .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-    .join("\n");
+ .map(m => `${m.role}: ${m.content}`)
+ .join("\n");
 
   const res = await fetch(HF_URL, {
     method: "POST",

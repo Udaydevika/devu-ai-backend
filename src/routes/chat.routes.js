@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 
 import { chatController } from "../controllers/chat.controller.js";
 import { chatStreamController } from "../controllers/chat.stream.controller.js";
@@ -7,6 +8,20 @@ import { ensureUser } from "../middlewares/ensureUser.js";
 import { freeChatLimiter } from "../middlewares/freeChatLimiter.js";
 
 const router = express.Router();
+
+/**
+ * =========================
+ * 📁 MULTER CONFIG
+ * Memory storage = best for AI image upload
+ * =========================
+ */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 15 * 1024 * 1024, // 15MB
+    files: 5,
+  },
+});
 
 /**
  * =========================
@@ -42,14 +57,15 @@ router.post(
 /**
  * =========================
  * STREAM CHAT (SSE + FILES)
- * ✅ counts free chats ONCE
+ * ✅ image upload ready
+ * ✅ counts free chats once
  * =========================
- * chatStreamController already includes multer
  */
 router.post(
   "/chat/stream",
   ensureUser,
   freeChatLimiter,
+  upload.array("files", 5),
   ...chatStreamController
 );
 

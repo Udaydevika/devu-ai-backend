@@ -20,361 +20,427 @@ import { logEvent, logError } from "../utils/logger.js";
 import { detectTool } from "../ai/toolRouter.js";
 import { generateImage } from "../ai/tools/image.tool.js";
 import { getLiveNews } from "../ai/tools/news.tool.js";
+import { handleFile } from "../ai/tools/file.tool.js";
+import { handleVideo } from "../ai/tools/video.tool.js";
 
 /**
- * 🧠 FIXED MODEL (NO CONFUSION)
+ * ======================================
+ * 🔥 DEVU AI FINAL CHAT CONTROLLER
+ * ======================================
  */
-const MODEL = "openai/gpt-4o-mini"; // 🔥 stable + fast
 
-function humanizeText(text) {
-  if (!text) return text;
+function cleanText(text = "") {
+  return text.replace(/\s+/g, " ").trim();
+}
 
+function humanizeText(text = "") {
   return text
     .replace(/\.\s/g, "... ")
     .replace(/\!\s/g, "! ")
     .replace(/,\s/g, ", ");
 }
 
-/**
- * 🔥 FINAL CHAT CONTROLLER
- */
+async function getBestStream(messages) {
+  const providers = [
+    {
+      name: "gpt4o",
+      run: async () =>
+        await streamOpenRouter(messages, [], "gpt-4o-mini"),
+    },
+    {
+      name: "gemini",
+      run: async () =>
+        await streamGemini(messages),
+    },
+    {
+      name: "groq",
+      run: async () =>
+        await streamGroq(messages),
+    },
+    {
+      name: "huggingface",
+      run: async () =>
+        await streamHuggingFace(messages),
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const stream = await provider.run();
+
+      if (stream) {
+        return {
+          stream,
+          usedModel: provider.name,
+        };
+      }
+    } catch (_) {}
+  }
+
+  throw new Error("All AI providers failed");
+}
+
 export async function chatController(req, res) {
   try {
     let { messages } = req.body;
 
     const user = req.user;
-    const userId = user?.id;
-    const isTemporaryChat = req.isTemporaryChat === true;
+    const userId = req.userId;
+    const isTemporaryChat =
+      req.isTemporaryChat === true;
 
-    if (!messages) {
+    const files = req.files || []; // ✅ IMPORTANT
+
+    // =========================
+    // VALIDATION
+    // =========================
+    if (!Array.isArray(messages)) {
       return res.status(400).json({
-        error: "messages are required",
+        error: "messages must be array",
       });
     }
 
-    // ===============================
-    // 🧠 MEMORY EXTRACTION (ASYNC)
-    // ===============================
-    if (userId && Array.isArray(messages)) {
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find((m) => m.role === "user");
+    messages = messages
+      .filter(
+        (m) =>
+          m &&
+          typeof m.role === "string" &&
+          typeof m.content === "string"
+      )
+      .map((m) => ({
+        role: m.role,
+        content: cleanText(m.content),
+      }))
+      .filter((m) => m.content.length > 0)
+      .slice(-12);
 
-    if (lastUserMessage?.content && userId && !isTemporaryChat) {
-  extractAndStoreMemory(userId, lastUserMessage.content)
-    .catch(() => {});
-}
+    if (messages.length === 0 && files.length === 0) {
+      return res.json({
+        text: DEFAULT_GREETING,
+        usedModel: "system",
+      });
     }
 
-    // ===============================
-    // 🧠 LOAD MEMORY
-    // ===============================
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((m) => m.role === "user");
+
+    const lastText =
+      lastUserMessage?.content || "";
+
+    // =========================
+    // TOOL DETECTION
+    // =========================
+    const tool = detectTool(lastText, files);
+
+    console.log("🧠 TOOL:", tool);
+
+    // =========================
+    // ✅ IMAGE ANALYSIS FIX
+    // If user uploads image
+    // =========================
+    if (
+  files.length > 0 &&
+  files[0].mimetype?.startsWith("image/")
+) {
+  const stream = await streamGemini(
+    messages,
+    files[0].buffer,
+    files[0].mimetype
+  );
+
+  let fullResponse = "";
+
+  for await (const token of stream) {
+    fullResponse += token;
+  }
+
+  return res.json({
+    text: fullResponse || "Could not analyze image.",
+    usedModel: "gemini-vision",
+  });
+}
+
+    // =========================
+    // IMAGE GENERATION
+    // =========================
+    if (
+      tool === "image" ||
+      (tool === "vision" &&
+        lastText
+          .toLowerCase()
+          .includes("ghibli"))
+    ) {
+      const imageUrl =
+        await generateImage(lastText);
+
+      return res.json({
+        text:
+          imageUrl ||
+          "Image generation failed",
+        usedModel: "image-tool",
+      });
+    }
+
+        // =========================
+    // 📄 DOCUMENT / PDF / TXT
+    // 🎬 VIDEO
+    // =========================
+    if (files.length > 0) {
+      const file = files[0];
+
+      // Skip image because already handled above
+      if (!file.mimetype?.startsWith("image/")) {
+
+        // 📄 PDF / DOCX / TXT
+        if (
+          file.mimetype === "application/pdf" ||
+          file.mimetype.includes("text") ||
+          file.mimetype.includes("document") ||
+          file.originalname?.toLowerCase().endsWith(".docx") ||
+          file.originalname?.toLowerCase().endsWith(".txt")
+        ) {
+          const extractedText =
+            await handleFile(file);
+
+          const summaryPrompt = [
+            {
+              role: "user",
+              content:
+                `Summarize this document clearly:\n\n${extractedText}`,
+            },
+          ];
+
+          const { stream } =
+            await getBestStream(summaryPrompt);
+
+          let summary = "";
+
+          for await (const token of stream) {
+            summary += token;
+          }
+
+          return res.json({
+            text: summary || "Could not summarize document.",
+            usedModel: "file-tool",
+          });
+        }
+
+        // 🎬 VIDEO
+        if (
+          file.mimetype?.startsWith("video/")
+        ) {
+          const result =
+            await handleVideo(file);
+
+          return res.json({
+            text: result,
+            usedModel: "video-tool",
+          });
+        }
+      }
+    }
+
+    // =========================
+    // NEWS / SEARCH
+    // =========================
+    if (
+      tool === "news" ||
+      tool === "search"
+    ) {
+      const news =
+        await getLiveNews(lastText);
+
+      return res.json({
+        text: news,
+        usedModel: "news-tool",
+      });
+    }
+
+    // =========================
+    // MEMORY
+    // =========================
+    if (
+      userId &&
+      !isTemporaryChat &&
+      lastText
+    ) {
+      extractAndStoreMemory(
+        userId,
+        lastText
+      ).catch(() => {});
+    }
+
     let memoryPrompt = null;
 
-    if (!isTemporaryChat && userId) {
-      const memories = await getUserMemory(userId, 15);
-      memoryPrompt = buildMemorySystemPrompt(memories);
+    if (
+      userId &&
+      !isTemporaryChat
+    ) {
+      try {
+        const memories =
+          await getUserMemory(
+            userId,
+            15
+          );
+
+        memoryPrompt =
+          buildMemorySystemPrompt(
+            memories
+          );
+      } catch (_) {}
     }
 
-    // ===============================
-    // 🎭 EMOTION
-    // ===============================
+    // =========================
+    // EMOTION
+    // =========================
     let emotion = "neutral";
     let emotionStyle = "";
 
     try {
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find((m) => m.role === "user");
+      emotion =
+        await detectEmotion(
+          lastText
+        );
 
-      if (lastUserMessage?.content) {
-        emotion = await detectEmotion(lastUserMessage.content);
-        emotionStyle = getEmotionStyle(emotion);
-      }
-    } catch (emotionErr) {
-      // Handle emotion detection failure silently
-    }
+      emotionStyle =
+        getEmotionStyle(
+          emotion
+        );
+    } catch (_) {}
 
-   // ===============================
-// 🤖 SYSTEM PROMPT (REAL AI)
-// ===============================
-const systemMessage = {
+    // =========================
+    // SYSTEM PROMPT
+    // =========================
+   const systemMessage = {
   role: "system",
   content: `
-You are DevU AI — a fast, intelligent assistant.
+You are DevU AI — a premium smart assistant.
 
-User emotion: ${emotion}
+Identity:
+- Fast, intelligent, practical, modern.
+- Helpful like a real expert.
 
-Behavior:
-${emotionStyle}
+Style:
+- Clear and direct.
+- Friendly and professional.
+- Concise by default.
+- Use bullets / steps when useful.
+- Detailed only when needed.
 
-Response Style:
-- Be clear and direct
-- Keep answers short unless needed
-- Use bullet points when helpful
-- Avoid large paragraphs
-- Do not repeat previous answers
+Intelligence:
+- Understand short or unclear questions intelligently.
+- Infer likely user intent when possible.
+- Ask follow-up only if required.
+- Think step-by-step for difficult tasks.
 
-Thinking:
-- Think step-by-step for complex problems
-- Ask clarifying questions if needed
+Skills:
+- Give clean working code.
+- Explain exactly where to paste code.
+- Solve bugs practically.
+- Give realistic business advice.
 
-Coding:
-- Provide clean, working code
-- Avoid unnecessary comments
+Support:
+- Be calm, respectful, supportive.
 
-Rules:
-- Do NOT hallucinate
-- Do NOT guess
-- Be accurate and practical
+Never:
+- Never say "As an AI language model".
+- Never sound robotic.
+- Never invent facts.
+- Never waste words.
 
-You are DevU — not an API.
+Goal:
+Make every reply useful, smart, and premium.
 `,
 };
+    const finalMessages = [
+      systemMessage,
+      ...(memoryPrompt
+        ? [memoryPrompt]
+        : []),
+      ...messages,
+    ];
 
-// ===============================
-// 🧹 CLEAN + TRIM MESSAGES
-// ===============================
-const MAX_HISTORY = 12;
+    // =========================
+    // CACHE
+    // =========================
+    const cacheKey =
+      JSON.stringify(
+        finalMessages
+      );
 
-const cleanedMessages = Array.isArray(messages)
-  ? messages
-      .filter((m) => m && typeof m.content === "string")
-      .map((m) => ({
-        role: m.role,
-        content: m.content.trim(),
-      }))
-      .filter((m) => m.content.length > 0)
-  : [];
+    const cached =
+      getCache(cacheKey);
 
-const trimmedMessages = cleanedMessages
-  .filter((m) => m.role !== "system")
-  .slice(-MAX_HISTORY);
-
-// ===============================
-// 🧠 CONTEXT BOOST
-// ===============================
-const lastUserMessage = [...trimmedMessages]
-  .reverse()
-  .find((m) => m.role === "user");
-
-const contextHint = lastUserMessage
-  ? {
-      role: "system",
-      content: `User intent: ${lastUserMessage.content}`,
-    }
-  : null;
-
-// ===============================
-// 🧠 FINAL MESSAGE STACK
-// ===============================
-const finalMessages = [
-  systemMessage,
-  ...(memoryPrompt ? [memoryPrompt] : []),
-  ...(contextHint ? [contextHint] : []),
-  ...trimmedMessages,
-];
-
-// ===============================
-// 🧹 FINAL CLEAN
-// ===============================
-const cleanMessages = finalMessages.filter(
-  (m) =>
-    m &&
-    typeof m.role === "string" &&
-    typeof m.content === "string" &&
-    m.content.trim().length > 0
-);
-
-// ===============================
-// 👋 GREETING
-// ===============================
-if (cleanMessages.length <= 1) {
-  return res.json({
-    text: DEFAULT_GREETING,
-  });
-}
-
-// ===============================
-// 🧠 TOOL DETECTION (FIXED)
-// ===============================
-const lastMessage = cleanMessages[cleanMessages.length - 1]?.content || "";
-
-// 🔥 FIX: files safe
-const files = req.files || [];
-
-const tool = detectTool(lastMessage, files);
-
-console.log("🧠 TOOL:", tool);
-
-
-// ===============================
-// 🎯 TOOL HANDLER (🔥 CORE FIX)
-// ===============================
-
-// 🎨 IMAGE GENERATION (GHIBLI)
-if (tool === "vision" && lastMessage.toLowerCase().includes("ghibli")) {
-  console.log("🎨 IMAGE TOOL TRIGGERED");
-
-  const imageUrl = await generateImage(lastMessage);
-
-  res.write(
-    `data: ${JSON.stringify({
-      token: imageUrl,
-    })}\n\n`
-  );
-
-  res.write("data: [DONE]\n\n");
-  return res.end();
-}
-
-// 🌍 REAL-TIME NEWS
-if (tool === "search") {
-  console.log("🌍 NEWS TOOL TRIGGERED");
-
-  const news = await getLiveNews(lastMessage);
-
-  res.write(
-    `data: ${JSON.stringify({
-      token: news,
-    })}\n\n`
-  );
-
-  res.write("data: [DONE]\n\n");
-  return res.end();
-}
-    
-// ===============================
-// ⚡ CACHE
-// ===============================
-const cacheKey = JSON.stringify(cleanMessages);
-const cached = getCache(cacheKey);
-
-if (cached) {
-  // 🔥 STREAM CACHE LIKE REAL AI
-  const chunks = cached.match(/.{1,40}/g) || [];
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  for (const chunk of chunks) {
-    res.write(
-      `data: ${JSON.stringify({
-        choices: [
-          {
-            delta: { content: chunk },
-          },
-        ],
-      })}\n\n`
-    );
-
-    await new Promise((r) => setTimeout(r, 15)); // smooth typing
-  }
-
-  res.write("event: done\n\n");
-  return res.end();
-}
-
-// ===============================
-// 🔥 STREAM RESPONSE
-// ===============================
-res.setHeader("Content-Type", "text/event-stream");
-res.setHeader("Cache-Control", "no-cache");
-res.setHeader("Connection", "keep-alive");
-
-logEvent("AI_REQUEST", {
-  userId,
-  messages: cleanMessages.length,
-});
-
-const MODEL_FALLBACK = [
-  "gpt4o",
-  "gemini",
-  "groq",
-  "huggingface",
-];
-
-let stream = null;
-
-for (const model of MODEL_FALLBACK) {
-  try {
-    console.log("🔄 Trying:", model);
-
-    if (model === "gpt4o") {
-      stream = await streamOpenRouter(cleanMessages, [], "gpt-4o-mini");
+    if (cached) {
+      return res.json({
+        text: cached,
+        usedModel: "cache",
+      });
     }
 
-    if (model === "gemini") {
-      stream = await streamGemini(cleanMessages);
-    }
-
-    if (model === "groq") {
-      stream = await streamGroq(cleanMessages);
-    }
-
-    if (model === "huggingface") {
-      stream = await streamHuggingFace(cleanMessages);
-    }
-
-    if (stream) break;
-
-  } catch (err) {
-    console.error(`❌ ${model} failed:`, err.message);
-  }
-}
-
-if (!stream) {
-  throw new Error("All AI models failed");
-}
-
+    // =========================
+    // AI RESPONSE
+    // =========================
+    const {
+      stream,
+      usedModel,
+    } =
+      await getBestStream(
+        finalMessages
+      );
 
     let fullResponse = "";
 
     for await (let token of stream) {
-      token = humanizeText(token);
-      fullResponse += token;
+      token =
+        humanizeText(token);
 
-      res.write(
-  `data: ${JSON.stringify({
-    choices: [
-      {
-        delta: { content: token },
-      },
-    ],
-  })}\n\n`
-);
+      fullResponse += token;
     }
 
-    // ===============================
-    // 🔊 FINAL PROCESS
-    // ===============================
-    const finalSpeechText = enhanceTextForSpeech(
-      fullResponse,
-      emotion
+    fullResponse =
+      enhanceTextForSpeech(
+        fullResponse,
+        emotion
+      );
+
+    fullResponse =
+      cleanText(
+        fullResponse
+      );
+
+    if (!fullResponse) {
+      fullResponse =
+        "Sorry, no response.";
+    }
+
+    setCache(
+      cacheKey,
+      fullResponse
     );
 
-    setCache(cacheKey, finalSpeechText);
-
-    logEvent("AI_SUCCESS", {
-      length: fullResponse.length,
+    return res.json({
+      text: fullResponse,
+      usedModel,
+      isPremium:
+        user?.isPremium ||
+        false,
+      freeChatsLeft:
+        user?.freeChatsLeft ??
+        null,
     });
-
-    res.write("event: done\n\n");
-    res.end();
   } catch (err) {
-    logError("AI_FATAL", err);
+    logError(
+      "AI_FATAL",
+      err
+    );
 
-    res.write(
-  `data: ${JSON.stringify({
-    choices: [
-      {
-        delta: { content: "⚠️ Something went wrong..." },
-      },
-    ],
-  })}\n\n`
-);
-    res.write("event: done\n\n");
-    res.end();
+    return res.status(500).json({
+      error:
+        "Something went wrong",
+      text:
+        "⚠️ Server error",
+    });
   }
 }

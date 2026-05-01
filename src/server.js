@@ -18,6 +18,7 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { rateLimiter } from "./middlewares/rateLimiter.js";
 import { logError } from "./utils/logger.js";
 import { decayMemories } from "./jobs/memoryDecay.job.js";
+import path from "path";
 
 const app = express();
 
@@ -64,7 +65,8 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(rateLimiter);
-
+app.use(express.static("public"));
+app.set("trust proxy", 1);
 // ====================================
 // 🟢 HEALTH CHECK ROUTE
 // ====================================

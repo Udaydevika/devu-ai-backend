@@ -13,7 +13,6 @@ import { handleVideo } from "../ai/tools/video.tool.js";
 import { generateImage } from "../ai/tools/image.tool.js";
 import { getLiveNews } from "../ai/tools/news.tool.js";
 
-
 // ==========================
 // 📦 MULTER
 // ==========================
@@ -22,23 +21,31 @@ const upload = multer({
 });
 
 // ==========================
-// 🧠 MODEL FALLBACK
+// 🛡 SAFE SSE SEND
 // ==========================
-const MODEL_FALLBACK = {
-  gpt4o: ["gpt4o", "gemini", "groq", "huggingface"],
-  "gpt-4o-mini": ["gpt-4o-mini", "gemini", "groq", "huggingface"],
-  gemini: ["gemini", "gpt4o", "groq", "huggingface"],
-};
+function send(res, type, content) {
+  if (!content || content.toString().trim() === "") return;
+
+  res.write(
+    `data: ${JSON.stringify({
+      type,
+      content,
+    })}\n\n`
+  );
+
+  res.flush?.();
+}
 
 // ==========================
-// 🔧 NORMALIZE MODEL
+// 🧠 MODEL NORMALIZER
 // ==========================
 function normalizeModel(model) {
-  if (!model) return "gpt4o";
+  if (!model) return "smart";
 
   const m = model.toLowerCase().trim();
 
   const map = {
+    smart: "smart",
     gpt4o: "gpt4o",
     "gpt-4o-mini": "gpt-4o-mini",
     gemini: "gemini",
@@ -46,24 +53,55 @@ function normalizeModel(model) {
     huggingface: "huggingface",
   };
 
-  return map[m] || "gpt4o";
+  return map[m] || "smart";
 }
 
 // ==========================
-// 🛡 SAFE SEND FUNCTION (CRITICAL FIX)
+// ⚡ SMART MODE
 // ==========================
-function send(res, type, content) {
-  if (!content || content.toString().trim() === "") return;
+function chooseSmartFallback(text = "") {
+  const q = text.toLowerCase();
 
-  const payload = JSON.stringify({
-    type,
-    content,
-  });
+  const hard =
+    q.includes("code") ||
+    q.includes("flutter") ||
+    q.includes("firebase") ||
+    q.includes("app") ||
+    q.includes("business") ||
+    q.includes("money") ||
+    q.includes("strategy") ||
+    q.includes("fix") ||
+    q.length > 120;
 
-  res.write(`data: ${payload}\n\n`);
+  if (hard) {
+    return ["gpt4o", "groq", "gemini"];
+  }
 
-  // 🔥 FORCE FLUSH
-  res.flush?.();
+  return ["groq", "gpt4o", "gemini"];
+}
+
+// ==========================
+// 🚀 ULTRA SPEED MODE
+// ==========================
+async function getFastestStream(messages, files) {
+  return Promise.any([
+    (async () => {
+      const stream = await streamGroq(messages);
+      return { name: "groq", stream };
+    })(),
+
+    (async () => {
+      const stream = await streamOpenRouter(
+        messages,
+        files,
+        "gpt4o"
+      );
+      return {
+        name: "openrouter",
+        stream,
+      };
+    })(),
+  ]);
 }
 
 // ==========================
@@ -71,6 +109,7 @@ function send(res, type, content) {
 // ==========================
 export const chatStreamController = [
   upload.array("files"),
+
   async (req, res) => {
     try {
       let { model } = req.body;
@@ -80,52 +119,93 @@ export const chatStreamController = [
 
       try {
         messages =
-          typeof req.body.messages === "string"
-            ? JSON.parse(req.body.messages)
+          typeof req.body.messages ===
+          "string"
+            ? JSON.parse(
+                req.body.messages
+              )
             : req.body.messages;
       } catch {
-        return res.status(400).json({ error: "Invalid messages JSON" });
+        return res
+          .status(400)
+          .json({
+            error:
+              "Invalid messages JSON",
+          });
       }
 
-      if (!Array.isArray(messages) || messages.length === 0) {
-        return res.status(400).json({ error: "messages required" });
+      if (
+        !Array.isArray(messages) ||
+        messages.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "messages required",
+          });
       }
 
-      const rawFiles = req.files || [];
+      // ==========================
+      // 📎 FILES
+      // ==========================
+      const rawFiles =
+        req.files || [];
 
-      const files = rawFiles.map((f) => ({
-        name: f.originalname,
-        mimeType: f.mimetype,
-        buffer: f.buffer,
-        bytes: f.buffer,
-      }));
+      const files = rawFiles.map(
+        (f) => ({
+          name: f.originalname,
+          mimeType: f.mimetype,
+          bytes: f.buffer,
+          buffer: f.buffer,
+        })
+      );
 
-      const lastMessage = messages[messages.length - 1]?.content || "";
-      const tool = detectTool(lastMessage, files);
+      const lastMessage =
+        messages[
+          messages.length - 1
+        ]?.content || "";
 
-      console.log("🧠 TOOL:", tool);
+      const tool = detectTool(
+        lastMessage,
+        files
+      );
 
       // ==========================
       // 📡 SSE HEADERS
       // ==========================
       res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        "Content-Type":
+          "text/event-stream",
+        "Cache-Control":
+          "no-cache",
+        Connection:
+          "keep-alive",
       });
 
       res.flushHeaders?.();
-
-      // 🔥 CRITICAL FIX (disable buffering)
-res.write(":\n\n");
+      res.write(":\n\n");
+      res.flush?.();
 
       // ==========================
       // 📰 NEWS
       // ==========================
       if (tool === "search") {
-        const news = await getLiveNews(lastMessage);
-        send(res, "news", news);
-        res.write("data: [DONE]\n\n");
+        const news =
+          await getLiveNews(
+            lastMessage
+          );
+
+        send(
+          res,
+          "news",
+          news
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+
         return res.end();
       }
 
@@ -133,128 +213,229 @@ res.write(":\n\n");
       // 🖼 IMAGE
       // ==========================
       if (tool === "image") {
-        const imageUrl = await generateImage(lastMessage);
-        send(res, "image", imageUrl);
-        res.write("data: [DONE]\n\n");
+        const image =
+          await generateImage(
+            lastMessage
+          );
+
+        send(
+          res,
+          "image",
+          image
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+
         return res.end();
       }
 
       // ==========================
       // 📄 FILE
       // ==========================
-      if (tool === "file" && files.length > 0) {
-        const result = await handleFile(files[0]);
-        send(res, "file", result);
-        res.write("data: [DONE]\n\n");
+      if (
+        tool === "file" &&
+        files.length > 0
+      ) {
+        const result =
+          await handleFile(
+            files[0]
+          );
+
+        send(
+          res,
+          "file",
+          result
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+
         return res.end();
       }
 
       // ==========================
       // 🎬 VIDEO
       // ==========================
-      if (tool === "video" && files.length > 0) {
-        const result = await handleVideo(files[0]);
-        send(res, "video", result);
-        res.write("data: [DONE]\n\n");
+      if (
+        tool === "video" &&
+        files.length > 0
+      ) {
+        const result =
+          await handleVideo(
+            files[0]
+          );
+
+        send(
+          res,
+          "video",
+          result
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+
         return res.end();
       }
 
       // ==========================
-      // 🤖 NORMAL AI
+      // 💎 PREMIUM PROMPT
       // ==========================
       const systemMessage = {
-  role: "system",
-  content: `
-You are DevU AI — a fast, intelligent assistant.
+        role: "system",
+        content: `
+You are DevU AI.
 
-Behavior:
-- Be clear and direct
-- Avoid unnecessary long answers
-- Use simple explanations
-- Think step-by-step for complex problems
-
-Coding:
-- Give clean, working code
-- Avoid unnecessary comments
-
-Style:
-- Friendly but professional
-- Similar to ChatGPT
+Smart, fast, practical.
 
 Rules:
-- Do NOT hallucinate
-- Do NOT guess
-- Ask if unclear
+- Clear answers
+- Helpful first
+- Avoid robotic tone
+- Use steps when useful
+- Give real solutions
+- Good coding help
+- Smart business advice
+- Never hallucinate
 `,
-};
+      };
 
-      const cleanMessages = [systemMessage, ...messages].filter(
+      const cleanMessages = [
+        systemMessage,
+        ...messages,
+      ].filter(
         (m) =>
-          typeof m.role === "string" &&
-          typeof m.content === "string" &&
-          m.content.trim().length > 0
+          typeof m.role ===
+            "string" &&
+          typeof m.content ===
+            "string" &&
+          m.content.trim()
+            .length > 0
       );
 
-      const fallback =
-        MODEL_FALLBACK[model] || [
-          model,
-          "gpt4o",
-          "gemini",
-          "groq",
-          "huggingface",
-        ];
+      // ==========================
+      // 🚀 ULTRA SPEED PREMIUM
+      // ==========================
+      const isPremium =
+        req.user?.isPremium ===
+        true;
 
-      for (const currentModel of fallback) {
+      if (isPremium) {
         try {
-          console.log("🔁 Trying:", currentModel);
-
-          let stream = null;
-
-          if (currentModel === "groq") {
-            stream = await streamGroq(cleanMessages);
-          } else if (
-            currentModel === "gpt4o" ||
-            currentModel === "gpt-4o-mini"
-          ) {
-            stream = await streamOpenRouter(
+          const fastest =
+            await getFastestStream(
               cleanMessages,
-              files,
-              currentModel
+              files
             );
-          } else if (currentModel === "gemini") {
-            stream = await streamGemini(cleanMessages);
-          } else if (currentModel === "huggingface") {
-            stream = await streamHuggingFace(cleanMessages);
+
+          for await (const token of fastest.stream) {
+            send(
+              res,
+              "text",
+              token
+            );
           }
 
-          if (!stream) throw new Error("No stream");
+          res.write(
+            "data: [DONE]\n\n"
+          );
 
-          for await (const token of stream) {
-            if (!token || token.trim() === "") continue;
-
-            console.log("📡 TOKEN:", token);
-
-            send(res, "text", token);
-          }
-
-          res.write("data: [DONE]\n\n");
           return res.end();
-        } catch (err) {
-          console.error(`❌ ${currentModel} failed`, err.message);
-        }
+        } catch {}
       }
 
       // ==========================
-      // ❌ FALLBACK
+      // ⚡ SMART MODE
       // ==========================
-      send(res, "text", "⚠️ AI service unavailable.");
-      res.write("data: [DONE]\n\n");
+      const fallback =
+        model === "smart"
+          ? chooseSmartFallback(
+              lastMessage
+            )
+          : [model, "groq", "gemini"];
+
+      for (const current of fallback) {
+        try {
+          let stream;
+
+          if (
+            current === "groq"
+          ) {
+            stream =
+              await streamGroq(
+                cleanMessages
+              );
+          } else if (
+            current ===
+              "gpt4o" ||
+            current ===
+              "gpt-4o-mini"
+          ) {
+            stream =
+              await streamOpenRouter(
+                cleanMessages,
+                files,
+                current
+              );
+          } else if (
+            current ===
+            "gemini"
+          ) {
+            stream =
+              await streamGemini(
+                cleanMessages
+              );
+          } else {
+            stream =
+              await streamHuggingFace(
+                cleanMessages
+              );
+          }
+
+          for await (const token of stream) {
+            send(
+              res,
+              "text",
+              token
+            );
+          }
+
+          res.write(
+            "data: [DONE]\n\n"
+          );
+
+          return res.end();
+        } catch {}
+      }
+
+      // ==========================
+      // ❌ TOTAL FAIL
+      // ==========================
+      send(
+        res,
+        "text",
+        "⚠️ AI unavailable now."
+      );
+
+      res.write(
+        "data: [DONE]\n\n"
+      );
+
       res.end();
     } catch (err) {
-      console.error("❌ CONTROLLER ERROR:", err);
+      send(
+        res,
+        "text",
+        "⚠️ Server error"
+      );
 
-      send(res, "text", "⚠️ Server error");
-      res.write("data: [DONE]\n\n");
+      res.write(
+        "data: [DONE]\n\n"
+      );
+
       res.end();
     }
   },

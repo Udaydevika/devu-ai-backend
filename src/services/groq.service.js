@@ -15,7 +15,7 @@ export async function streamGroq(messages) {
   ];
 
   const stream = await groq.chat.completions.create({
-    model: "mixtral-8x7b-32768", // ✅ FIXED MODEL
+    model: "llama-3.1-8b-instant", // ✅ FIXED MODEL
     messages: formattedMessages,
     stream: true,
   });

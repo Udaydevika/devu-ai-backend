@@ -1,9 +1,10 @@
 import fetch from "node-fetch";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_URL =
+  "https://openrouter.ai/api/v1/chat/completions";
 
 /**
- * 🔥 DevU AI — OpenRouter Streaming Service (FIXED)
+ * 🚀 DevU AI - OpenRouter Ultra Fast Streaming Service
  */
 export async function streamOpenRouter(
   messages = [],
@@ -12,21 +13,17 @@ export async function streamOpenRouter(
 ) {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
-  // ❌ HARD FAIL if key missing
+  // ===============================
+  // 🔐 ENV CHECK
+  // ===============================
   if (!apiKey) {
-    console.error("❌ OPENROUTER_API_KEY missing in ENV");
+    console.error("❌ OPENROUTER_API_KEY missing");
     throw new Error("OpenRouter not configured");
   }
 
-  console.log("========== OPENROUTER ==========");
-  console.log("Model input:", model);
-  console.log("Messages:", messages.length);
-  console.log("Files:", files.length);
-  console.log("================================");
-
-  // =====================================================
-  // 🧠 MODEL MAPPING (SAFE)
-  // =====================================================
+  // ===============================
+  // 🧠 MODEL MAP
+  // ===============================
   let finalModel = "openai/gpt-4o-mini";
 
   switch (model) {
@@ -43,43 +40,52 @@ export async function streamOpenRouter(
       finalModel = model || "openai/gpt-4o-mini";
   }
 
-  console.log("🚀 Using model:", finalModel);
-
-  // =====================================================
-  // 🧠 FORMAT MESSAGES
-  // =====================================================
+  // ===============================
+  // 💬 FORMAT MESSAGES
+  // ===============================
   const chatMessages = messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
 
-  // =====================================================
-  // 🖼️ IMAGE SUPPORT
-  // =====================================================
+  // ===============================
+  // 🖼 IMAGE SUPPORT
+  // ===============================
   if (files?.length > 0) {
     const images = files
-      .filter((f) => f?.mimeType?.startsWith("image/"))
+      .filter((f) =>
+        f?.mimeType?.startsWith("image/")
+      )
       .map((f) => ({
         type: "image_url",
         image_url: {
-          url: `data:${f.mimeType};base64,${f.bytes.toString("base64")}`,
+          url: `data:${f.mimeType};base64,${f.bytes.toString(
+            "base64"
+          )}`,
         },
       }));
 
     if (images.length > 0) {
       const lastUserIndex = [...chatMessages]
         .reverse()
-        .findIndex((m) => m.role === "user");
+        .findIndex(
+          (m) => m.role === "user"
+        );
 
       if (lastUserIndex !== -1) {
-        const realIndex = chatMessages.length - 1 - lastUserIndex;
+        const realIndex =
+          chatMessages.length -
+          1 -
+          lastUserIndex;
 
         chatMessages[realIndex] = {
           role: "user",
           content: [
             {
               type: "text",
-              text: chatMessages[realIndex].content || "",
+              text:
+                chatMessages[realIndex]
+                  .content || "",
             },
             ...images,
           ],
@@ -88,78 +94,149 @@ export async function streamOpenRouter(
     }
   }
 
-  // =====================================================
-  // 🚀 API CALL
-  // =====================================================
+  // ===============================
+  // ⏱ TIMEOUT CONTROLLER
+  // ===============================
+  const controller =
+    new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 12000);
+
   let res;
 
+  // ===============================
+  // 🚀 API REQUEST
+  // ===============================
   try {
-    res = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-        "HTTP-Referer": "https://devu.ai",
-        "X-Title": "DevU AI",
-      },
-      body: JSON.stringify({
-        model: finalModel,
-        stream: true,
-        max_tokens: 1024,
-        messages: chatMessages,
-      }),
-    });
+    res = await fetch(
+      OPENROUTER_URL,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type":
+            "application/json",
+          Accept:
+            "text/event-stream",
+          "HTTP-Referer":
+            "https://devu-ai.onrender.com",
+          "X-Title":
+            "DevU AI",
+        },
+        body: JSON.stringify({
+          model: finalModel,
+          stream: true,
+          max_tokens: 1024,
+          messages: chatMessages,
+        }),
+      }
+    );
+
+    clearTimeout(timeout);
   } catch (err) {
-    console.error("❌ Network error:", err.message);
-    throw new Error("OpenRouter request failed");
+    clearTimeout(timeout);
+
+    if (err.name === "AbortError") {
+      throw new Error(
+        "OpenRouter timeout"
+      );
+    }
+
+    throw new Error(
+      "OpenRouter network failed"
+    );
   }
 
-  console.log("📡 Status:", res.status);
-
+  // ===============================
+  // ❌ BAD RESPONSE
+  // ===============================
   if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ OpenRouter error:", errText);
-    throw new Error(errText);
+    const errText =
+      await res.text();
+
+    throw new Error(
+      `OpenRouter ${res.status}: ${errText}`
+    );
   }
 
-  console.log("✅ Streaming started");
-
-  // =====================================================
-  // 🔥 STREAM PARSER (IMPROVED)
-  // =====================================================
-  const decoder = new TextDecoder();
+  // ===============================
+  // 🔥 STREAM PARSER
+  // ===============================
+  const decoder =
+    new TextDecoder();
 
   async function* streamTokens() {
     let buffer = "";
 
     try {
       for await (const chunk of res.body) {
-        buffer += decoder.decode(chunk, { stream: true });
+        buffer += decoder.decode(
+          chunk,
+          {
+            stream: true,
+          }
+        );
 
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines =
+          buffer.split("\n");
+
+        buffer =
+          lines.pop() || "";
 
         for (const line of lines) {
-          if (!line.startsWith("data:")) continue;
+          if (
+            !line.startsWith(
+              "data:"
+            )
+          )
+            continue;
 
-          const raw = line.replace("data:", "").trim();
+          const raw = line
+            .replace(
+              "data:",
+              ""
+            )
+            .trim();
 
           if (!raw) continue;
-          if (raw === "[DONE]") return;
+
+          if (
+            raw === "[DONE]"
+          )
+            return;
 
           try {
-            const json = JSON.parse(raw);
-            const token = json?.choices?.[0]?.delta?.content;
+            const json =
+              JSON.parse(
+                raw
+              );
 
-            if (token) yield token;
+            const token =
+              json
+                ?.choices?.[0]
+                ?.delta
+                ?.content;
+
+            if (
+              token &&
+              token.trim() !==
+                ""
+            ) {
+              yield token;
+            }
           } catch {
-            // ignore parse errors
+            // ignore partial chunks
           }
         }
       }
     } catch (err) {
-      console.error("❌ Stream error:", err.message);
+      console.error(
+        "❌ Stream parser failed:",
+        err.message
+      );
     }
   }
 
