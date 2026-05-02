@@ -1,112 +1,185 @@
 import fs from "fs";
 import path from "path";
+import { handleAudio } from "../ai/tools/audio.tool.js";
 import { sendToDevuAI } from "../services/aiService.js";
 
 /**
- * 🎧 Audio Upload Controller (NO OpenAI)
- * ✔ Safe
- * ✔ Cleanup protected
- * ✔ Ready for future STT integration
+ * ==========================================
+ * 🔥 DevU AI FINAL AUDIO CONTROLLER
+ *
+ * Supports:
+ * ✅ Speech to text
+ * ✅ Translate audio
+ * ✅ Summarize meeting audio
+ * ✅ Voice note AI answers
+ * ✅ Safe cleanup
+ * ==========================================
  */
-export const handleAudioUpload = async (req, res) => {
-  let filePath = null;
 
-  try {
-    const file = req.file;
-
-    // =====================================================
-    // ❌ VALIDATION
-    // =====================================================
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        error: "No audio file uploaded",
-      });
-    }
-
-    filePath = file.path;
-
-    console.log("🎧 Audio received:", filePath);
-
-    // =====================================================
-    // 🔐 FILE TYPE CHECK (basic safety)
-    // =====================================================
-    const allowedTypes = [
-      "audio/mpeg",
-      "audio/wav",
-      "audio/ogg",
-      "audio/webm",
-      "audio/mp4",
-    ];
-
-    if (!allowedTypes.includes(file.mimetype)) {
-      fs.unlinkSync(filePath);
-      return res.status(400).json({
-        success: false,
-        error: "Unsupported audio format",
-      });
-    }
-
-    // =====================================================
-    // 🧠 PLACEHOLDER STT (Speech-to-Text)
-    // =====================================================
-    // Replace this later with:
-    // - Google Speech-to-Text
-    // - Whisper API
-    // - Deepgram / AssemblyAI
-
-    let transcriptText = "Audio transcription not configured";
-
-    console.log("📝 Transcript:", transcriptText);
-
-    // =====================================================
-    // 🤖 SEND TO DEVU AI
-    // =====================================================
-    let aiResponse;
+export const handleAudioUpload =
+  async (req, res) => {
+    let filePath = null;
 
     try {
-      aiResponse = await sendToDevuAI({
-        message: transcriptText,
-        type: "text",
-      });
-    } catch (aiError) {
-      console.error("❌ AI Error:", aiError.message);
-      aiResponse = "AI processing failed";
-    }
+      const file =
+        req.file;
 
-    // =====================================================
-    // 🧹 CLEANUP (SAFE)
-    // =====================================================
-    try {
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      // ==========================
+      // VALIDATE FILE
+      // ==========================
+      if (!file) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+            error:
+              "No audio file uploaded",
+          });
       }
-    } catch (cleanupErr) {
-      console.warn("⚠️ File cleanup failed:", cleanupErr.message);
-    }
 
-    // =====================================================
-    // ✅ RESPONSE
-    // =====================================================
-    return res.json({
-      success: true,
-      transcript: transcriptText,
-      result: aiResponse,
-    });
+      filePath =
+        file.path;
 
-  } catch (err) {
-    console.error("❌ Audio Controller Error:", err.message);
+      console.log(
+        "🎧 Audio received:",
+        file.originalname
+      );
 
-    // 🧹 Ensure cleanup even on crash
-    try {
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      // ==========================
+      // SAFE MIME CHECK
+      // ==========================
+      const allowedTypes =
+        [
+          "audio/mpeg",
+          "audio/wav",
+          "audio/ogg",
+          "audio/webm",
+          "audio/mp4",
+          "audio/x-m4a",
+          "audio/aac",
+        ];
+
+      if (
+        !allowedTypes.includes(
+          file.mimetype
+        )
+      ) {
+        try {
+          if (
+            filePath &&
+            fs.existsSync(
+              filePath
+            )
+          ) {
+            fs.unlinkSync(
+              filePath
+            );
+          }
+        } catch (_) {}
+
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+            error:
+              "Unsupported audio format",
+          });
       }
-    } catch {}
 
-    return res.status(500).json({
-      success: false,
-      error: "Audio processing failed",
-    });
-  }
-};
+      // ==========================
+      // READ BUFFER
+      // ==========================
+      const buffer =
+        fs.readFileSync(
+          filePath
+        );
+
+      // ==========================
+      // USER PROMPT
+      // examples:
+      // summarize this audio
+      // translate this audio
+      // transcribe this voice note
+      // ==========================
+      const userPrompt =
+        req.body
+          ?.prompt ||
+        "";
+
+      // ==========================
+      // REAL AUDIO TOOL
+      // ==========================
+      const result =
+        await handleAudio(
+          {
+            buffer,
+            originalname:
+              file.originalname,
+            mimetype:
+              file.mimetype,
+          },
+          userPrompt
+        );
+
+      // ==========================
+      // CLEANUP
+      // ==========================
+      try {
+        if (
+          filePath &&
+          fs.existsSync(
+            filePath
+          )
+        ) {
+          fs.unlinkSync(
+            filePath
+          );
+        }
+      } catch (cleanupErr) {
+        console.warn(
+          "⚠️ Cleanup failed:",
+          cleanupErr.message
+        );
+      }
+
+      // ==========================
+      // SUCCESS
+      // ==========================
+      return res.json({
+        success: true,
+        result,
+      });
+    } catch (err) {
+      console.error(
+        "❌ Audio controller error:",
+        err.message
+      );
+
+      // ==========================
+      // CLEANUP ON FAIL
+      // ==========================
+      try {
+        if (
+          filePath &&
+          fs.existsSync(
+            filePath
+          )
+        ) {
+          fs.unlinkSync(
+            filePath
+          );
+        }
+      } catch (_) {}
+
+      return res
+        .status(500)
+        .json({
+          success:
+            false,
+          error:
+            "Audio processing failed",
+        });
+    }
+  };

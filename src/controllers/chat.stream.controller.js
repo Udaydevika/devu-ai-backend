@@ -108,8 +108,6 @@ async function getFastestStream(messages, files) {
 // 🚀 CONTROLLER
 // ==========================
 export const chatStreamController = [
-  upload.array("files"),
-
   async (req, res) => {
     try {
       let { model } = req.body;
@@ -161,11 +159,18 @@ export const chatStreamController = [
         })
       );
 
-      const lastMessage =
-        messages[
-          messages.length - 1
-        ]?.content || "";
+      const lastRaw =
+messages[messages.length - 1]?.content;
 
+const lastMessage =
+typeof lastRaw === "string"
+  ? lastRaw
+  : Array.isArray(lastRaw)
+  ? lastRaw
+      .filter((p) => p.type === "text")
+      .map((p) => p.text || "")
+      .join(" ")
+  : "";
       const tool = detectTool(
         lastMessage,
         files
@@ -281,6 +286,17 @@ export const chatStreamController = [
         return res.end();
       }
 
+      if (tool === "audio" && files.length > 0) {
+  const result = await handleAudio(files[0]);
+  send(res, "audio", result);
+
+   res.write(
+          "data: [DONE]\n\n"
+        );
+
+        return res.end();
+}
+
       // ==========================
       // 💎 PREMIUM PROMPT
       // ==========================
@@ -304,17 +320,21 @@ Rules:
       };
 
       const cleanMessages = [
-        systemMessage,
-        ...messages,
-      ].filter(
-        (m) =>
-          typeof m.role ===
-            "string" &&
-          typeof m.content ===
-            "string" &&
-          m.content.trim()
-            .length > 0
-      );
+  systemMessage,
+  ...messages,
+].filter((m) => {
+  if (typeof m.role !== "string") return false;
+
+  if (typeof m.content === "string") {
+    return m.content.trim().length > 0;
+  }
+
+  if (Array.isArray(m.content)) {
+    return m.content.length > 0;
+  }
+
+  return false;
+});
 
       // ==========================
       // 🚀 ULTRA SPEED PREMIUM
@@ -344,7 +364,9 @@ Rules:
           );
 
           return res.end();
-        } catch {}
+        } catch (err) {
+ console.error(current, err.message);
+}
       }
 
       // ==========================
@@ -408,7 +430,9 @@ Rules:
           );
 
           return res.end();
-        } catch {}
+        } catch (err) {
+ console.error(current, err.message);
+}
       }
 
       // ==========================

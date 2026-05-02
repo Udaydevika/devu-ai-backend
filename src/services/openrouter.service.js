@@ -84,8 +84,9 @@ export async function streamOpenRouter(
             {
               type: "text",
               text:
-                chatMessages[realIndex]
-                  .content || "",
+ typeof chatMessages[realIndex].content === "string"
+   ? chatMessages[realIndex].content
+   : "",
             },
             ...images,
           ],
@@ -102,7 +103,7 @@ export async function streamOpenRouter(
 
   const timeout = setTimeout(() => {
     controller.abort();
-  }, 12000);
+  }, 20000);
 
   let res;
 
@@ -145,8 +146,8 @@ export async function streamOpenRouter(
       );
     }
 
-    throw new Error(
-      "OpenRouter network failed"
+   throw new Error(
+ `OpenRouter network failed: ${err.message}`
     );
   }
 
