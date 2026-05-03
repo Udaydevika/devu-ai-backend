@@ -1,5 +1,25 @@
-import pdf from "pdf-parse";
+// src/ai/tools/file.tool.js
+
+import * as pdf from "pdf-parse";
 import mammoth from "mammoth";
+
+/**
+ * ==========================================
+ * 🔥 DevU AI FINAL FILE TOOL (Render Safe)
+ *
+ * Supports:
+ * ✅ PDF
+ * ✅ DOCX
+ * ✅ TXT
+ * ✅ CSV
+ * ✅ JSON
+ * ✅ MD
+ * ✅ Resume files
+ * ✅ Notes / Reports
+ * ✅ Large text cleanup
+ * ✅ Render Node v24 safe
+ * ==========================================
+ */
 
 export async function handleFile(file) {
   try {
@@ -7,58 +27,68 @@ export async function handleFile(file) {
       return "⚠️ No file uploaded.";
     }
 
+    let text = "";
+
     const mime =
       file.mimeType ||
       file.mimetype ||
       "";
 
-    const name = (
+    const name = String(
       file.name ||
       file.originalname ||
       "document"
     ).toLowerCase();
 
-    let text = "";
-
-    // ======================
+    // ======================================
     // PDF
-    // ======================
+    // ======================================
     if (
       mime.includes("pdf") ||
       name.endsWith(".pdf")
     ) {
       const data =
-        await pdf(file.buffer);
+        await pdf.default(
+          file.buffer
+        );
 
-      text = data.text || "";
+      text =
+        data?.text || "";
     }
 
-    // ======================
+    // ======================================
     // DOCX
-    // ======================
+    // ======================================
     else if (
       mime.includes("word") ||
-      mime.includes("document") ||
+      mime.includes(
+        "officedocument"
+      ) ||
       name.endsWith(".docx")
     ) {
       const data =
-        await mammoth.extractRawText({
-          buffer: file.buffer,
-        });
+        await mammoth.extractRawText(
+          {
+            buffer:
+              file.buffer,
+          }
+        );
 
-      text = data.value || "";
+      text =
+        data?.value || "";
     }
 
-    // ======================
-    // TEXT / CSV / JSON
-    // ======================
+    // ======================================
+    // TXT / CSV / JSON / MD
+    // ======================================
     else if (
       mime.includes("text") ||
       mime.includes("csv") ||
       mime.includes("json") ||
       name.endsWith(".txt") ||
       name.endsWith(".csv") ||
-      name.endsWith(".json")
+      name.endsWith(".json") ||
+      name.endsWith(".md")
     ) {
       text =
         file.buffer.toString(
@@ -66,177 +96,115 @@ export async function handleFile(file) {
         );
     }
 
+    // ======================================
+    // Unknown file fallback
+    // ======================================
     else {
-      return "⚠️ Unsupported file type.";
+      text =
+        file.buffer.toString(
+          "utf8"
+        );
     }
 
-    // ======================
-    // CLEAN
-    // ======================
-    text = text
-      .replace(/\s+/g, " ")
+    // ======================================
+    // Clean Text
+    // ======================================
+    text = String(text)
+      .replace(/\0/g, "")
+      .replace(/\r/g, "\n")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
 
     if (!text) {
-      return "⚠️ No readable text found.";
+      return "⚠️ No readable text found in file.";
     }
 
-    const short =
-      text.length > 9000
+    // ======================================
+    // Limit Size
+    // ======================================
+    const preview =
+      text.length > 12000
         ? text.substring(
             0,
-            9000
-          )
+            12000
+          ) +
+          "\n\n...[truncated]"
         : text;
 
-    // ======================
-    // DOCUMENT TYPE DETECTION
-    // ======================
-    const lower =
-      short.toLowerCase();
-
-    let type =
-      "General Document";
-
-    if (
-      lower.includes(
-        "experience"
-      ) &&
-      lower.includes(
-        "education"
-      )
-    ) {
-      type = "Resume";
-    } else if (
-      lower.includes(
-        "invoice"
+    // ======================================
+    // Detect Resume
+    // ======================================
+    const isResume =
+      name.includes(
+        "resume"
       ) ||
-      lower.includes(
-        "gst"
+      name.includes(
+        "cv"
       ) ||
-      lower.includes(
-        "total amount"
-      )
-    ) {
-      type = "Invoice";
-    } else if (
-      lower.includes(
-        "abstract"
-      ) &&
-      lower.includes(
-        "references"
-      )
-    ) {
-      type =
-        "Research Paper";
-    } else if (
-      lower.includes(
-        "statement"
-      ) &&
-      lower.includes(
-        "balance"
-      )
-    ) {
-      type =
-        "Bank Statement";
-    }
-
-    // ======================
-    // SPECIAL ANALYSIS
-    // ======================
-    let bonus = "";
-
-    // Resume
-    if (
-      type ===
-      "Resume"
-    ) {
-      const score =
-        Math.floor(
-          72 +
-            Math.random() *
-              20
+      preview
+        .toLowerCase()
+        .includes(
+          "experience"
+        ) &&
+      preview
+        .toLowerCase()
+        .includes(
+          "education"
         );
 
-      bonus = `
-
-🎯 ATS Resume Score:
-${score}/100
-
-💡 Resume Tips:
-• Add measurable achievements
-• Use stronger action verbs
-• Include relevant keywords`;
-    }
-
-    // Invoice
-    if (
-      type ===
-      "Invoice"
-    ) {
-      bonus = `
-
-🧾 Invoice Insights:
-• Vendor / seller details may be present
-• Taxes / GST likely included
-• Verify totals carefully`;
-    }
-
-    // Research
-    if (
-      type ===
-      "Research Paper"
-    ) {
-      bonus = `
-
-📚 Research Insights:
-• Likely contains methodology
-• Review abstract first
-• Check conclusion section`;
-    }
-
-    // Bank
-    if (
-      type ===
-      "Bank Statement"
-    ) {
-      bonus = `
-
-🏦 Statement Insights:
-• Review credits / debits
-• Check monthly charges
-• Verify final balance`;
-    }
-
-    // ======================
-    // FINAL RESPONSE
-    // ======================
-    return `📄 Document AI Analysis Complete
+    // ======================================
+    // Resume Mode
+    // ======================================
+    if (isResume) {
+      return `
+📄 Resume Read Successfully
 
 📌 File Name:
 ${name}
 
-📂 Detected Type:
-${type}
+🧠 Resume Content Preview:
 
-📝 Preview:
+${preview}
 
-${short}
+💡 Ask Next:
+• Improve my resume
+• ATS optimize resume
+• Make professional resume
+• Find mistakes
+• Convert to PDF
+• Rewrite summary
+`;
+    }
 
-${bonus}
+    // ======================================
+    // Normal File Mode
+    // ======================================
+    return `
+📄 File Read Successfully
+
+📌 File Name:
+${name}
+
+📝 Content Preview:
+
+${preview}
 
 💡 Ask Next:
 • Summarize this
-• Extract key points
-• Make notes
-• Translate file
-• Explain important data`;
+• Explain key points
+• Convert to notes
+• Translate document
+• Make PDF
+• Find mistakes
+• Extract action items
+`;
   } catch (err) {
     console.error(
-      "❌ Document AI error:",
+      "❌ File Tool Error:",
       err.message
     );
 
-    return "⚠️ Failed to process document.";
+    return "⚠️ Failed to process file.";
   }
 }
