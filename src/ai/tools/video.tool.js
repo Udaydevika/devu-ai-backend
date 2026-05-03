@@ -9,25 +9,24 @@ import { streamGemini } from "../../services/gemini.service.js";
 import { trimVideo } from "../../utils/videoEditor.js";
 import { addCaptionToVideo } from "../../utils/captionVideo.js";
 
-const BASE_URL =
-  process.env.PUBLIC_URL ||
-  "https://devu-ai.onrender.com";
-
 /**
  * ==========================================
- * 🔥 DevU AI ULTRA FAST VIDEO TOOL v2
- *
- * Optimized for Render / VPS / Low RAM
+ * 🔥 DevU AI VIDEO TOOL (PRODUCTION READY)
  *
  * Supports:
  * ✅ Viral Reel
- * ✅ Auto Caption Reel
+ * ✅ Auto Captions
  * ✅ Smart Highlight
  * ✅ 30 sec Clip
- * ✅ Fast Video Analysis
- * ✅ Large File Safe Mode
+ * ✅ AI Video Summary
+ * ✅ Direct Download URLs
+ * ✅ Render Safe
  * ==========================================
  */
+
+const BASE_URL =
+  process.env.PUBLIC_URL ||
+  "https://devu-ai.onrender.com";
 
 export async function handleVideo(
   file,
@@ -39,7 +38,10 @@ export async function handleVideo(
     // ==========================
     // VALIDATE
     // ==========================
-    if (!file || !file.buffer) {
+    if (
+      !file ||
+      !file.buffer
+    ) {
       return "⚠️ No video file found.";
     }
 
@@ -49,7 +51,7 @@ export async function handleVideo(
       ) || ".mp4";
 
     const prompt =
-      (userPrompt || "")
+      String(userPrompt || "")
         .toLowerCase()
         .trim();
 
@@ -58,26 +60,15 @@ export async function handleVideo(
       1024 /
       1024;
 
-    console.log(
-      "🎬 Video Upload:",
-      file.originalname,
-      sizeMB.toFixed(1) + "MB"
-    );
-
     // ==========================
-    // LARGE FILE SAFE MODE
+    // LARGE FILE PROTECTION
     // ==========================
-    if (sizeMB > 20) {
-      return `🎬 Video Uploaded Successfully
-
-Large file detected (${sizeMB.toFixed(1)} MB)
-
-For instant editing, please upload videos under 20MB.
-Heavy processing mode is being upgraded.`;
+    if (sizeMB > 25) {
+      return `⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 25MB.`;
     }
 
     // ==========================
-    // PUBLIC FOLDER
+    // PUBLIC DIR
     // ==========================
     const publicDir =
       path.join(
@@ -99,11 +90,11 @@ Heavy processing mode is being upgraded.`;
     }
 
     // ==========================
-    // SAVE TEMP VIDEO
+    // TEMP SAVE
     // ==========================
     tempPath = path.join(
       os.tmpdir(),
-      `devu_video_${Date.now()}${ext}`
+      `devu_${Date.now()}${ext}`
     );
 
     fs.writeFileSync(
@@ -111,9 +102,9 @@ Heavy processing mode is being upgraded.`;
       file.buffer
     );
 
-    // ==========================
-    // MODE 1: VIRAL REEL
-    // ==========================
+    // =====================================================
+    // MODE 1 — VIRAL REEL / CAPTION REEL
+    // =====================================================
     if (
       prompt.includes(
         "viral"
@@ -153,34 +144,32 @@ Heavy processing mode is being upgraded.`;
         reel.buffer
       );
 
-      const finalVideo =
+      const captioned =
         await addCaptionToVideo(
           reelTemp,
           "🔥 Watch Till End"
         );
 
-      const finalName =
+      const fileName =
         `viral_${Date.now()}.mp4`;
 
       const finalPath =
         path.join(
           publicDir,
-          finalName
+          fileName
         );
 
       fs.copyFileSync(
-        finalVideo,
+        captioned,
         finalPath
       );
 
-      return `🔥 Viral Reel Ready
-
-${BASE_URL}/${finalName}`;
+      return `${BASE_URL}/${fileName}`;
     }
 
-    // ==========================
-    // MODE 2: SMART HIGHLIGHT
-    // ==========================
+    // =====================================================
+    // MODE 2 — SMART HIGHLIGHT
+    // =====================================================
     if (
       prompt.includes(
         "highlight"
@@ -204,9 +193,8 @@ ${BASE_URL}/${finalName}`;
         return "⚠️ Could not analyze video.";
       }
 
-      const scored = [];
+      const scores = [];
 
-      // FAST MODE: only 2 frames
       for (
         let i = 0;
         i <
@@ -247,20 +235,20 @@ ${BASE_URL}/${finalName}`;
             )?.[0] || "5"
           );
 
-        scored.push({
+        scores.push({
           index: i,
           score,
         });
       }
 
-      scored.sort(
+      scores.sort(
         (a, b) =>
           b.score -
           a.score
       );
 
       const best =
-        scored[0];
+        scores[0];
 
       const startAt =
         best.index * 10;
@@ -287,20 +275,18 @@ ${BASE_URL}/${finalName}`;
         reel.buffer
       );
 
-      return `🔥 Smart Highlight Ready
-
-${BASE_URL}/${reel.filename}`;
+      return `${BASE_URL}/${reel.filename}`;
     }
 
-    // ==========================
-    // MODE 3: SIMPLE 30 SEC CLIP
-    // ==========================
+    // =====================================================
+    // MODE 3 — SIMPLE CLIP
+    // =====================================================
     if (
       prompt.includes(
-        "30 sec"
+        "clip"
       ) ||
       prompt.includes(
-        "clip"
+        "30 sec"
       ) ||
       prompt.includes(
         "reel"
@@ -328,14 +314,12 @@ ${BASE_URL}/${reel.filename}`;
         reel.buffer
       );
 
-      return `🎬 Clip Ready
-
-${BASE_URL}/${reel.filename}`;
+      return `${BASE_URL}/${reel.filename}`;
     }
 
-    // ==========================
-    // MODE 4: FAST ANALYSIS
-    // ==========================
+    // =====================================================
+    // MODE 4 — AI VIDEO ANALYSIS
+    // =====================================================
     const frames =
       await extractFrames(
         tempPath
@@ -350,7 +334,6 @@ ${BASE_URL}/${reel.filename}`;
 
     const notes = [];
 
-    // FAST MODE: 2 frames only
     for (
       let i = 0;
       i <
@@ -412,7 +395,7 @@ ${notes.join("\n")}
 ${summary}`;
   } catch (err) {
     console.error(
-      "❌ Video tool error:",
+      "❌ Video Tool Error:",
       err.message
     );
 

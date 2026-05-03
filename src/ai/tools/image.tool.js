@@ -2,58 +2,145 @@
 
 import fetch from "node-fetch";
 
-export async function generateImage(prompt) {
+/**
+ * ==========================================
+ * 🔥 DevU AI FULL FREE IMAGE TOOL
+ * Powered by Hugging Face
+ *
+ * Supports:
+ * ✅ Ghibli art
+ * ✅ Anime style
+ * ✅ Logo
+ * ✅ Thumbnail
+ * ✅ Poster
+ * ✅ Realistic image
+ * ✅ Free alternative to Replicate
+ * ==========================================
+ */
+
+export async function generateImage(
+  prompt = ""
+) {
   try {
-    const enhancedPrompt = `
-Studio Ghibli style illustration, anime, soft lighting, detailed background, 
-${prompt}
-`;
-
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${process.env.REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version:
-          "db21e45b6c5d9f5bbf4b7e0e7c0c0d9b6a8c2e9c9e6f5b7c2d6f3e2a1b0c9d8", // stable diffusion model
-        input: {
-          prompt: enhancedPrompt,
-          width: 768,
-          height: 768,
-        },
-      }),
-    });
-
-    const data = await response.json();
-
-    let imageUrl = null;
-
-    // ⏳ WAIT FOR RESULT (important)
-    let status = data.status;
-    let prediction = data;
-
-    while (status !== "succeeded" && status !== "failed") {
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const res = await fetch(prediction.urls.get, {
-        headers: {
-          Authorization: `Token ${process.env.REPLICATE_API_KEY}`,
-        },
-      });
-
-      prediction = await res.json();
-      status = prediction.status;
+    if (!prompt.trim()) {
+      return null;
     }
 
-    if (prediction.status === "succeeded") {
-      imageUrl = prediction.output[0];
+    const apiKey =
+      process.env
+        .HUGGINGFACE_API_KEY;
+
+    if (!apiKey) {
+      throw new Error(
+        "HUGGINGFACE_API_KEY missing"
+      );
     }
 
-    return imageUrl || "Failed to generate image";
+    const lower =
+      prompt.toLowerCase();
+
+    // ======================================
+    // SMART STYLE DETECTION
+    // ======================================
+    let style =
+      "high quality detailed digital art";
+
+    if (
+      lower.includes(
+        "ghibli"
+      ) ||
+      lower.includes(
+        "anime"
+      )
+    ) {
+      style =
+        "Studio Ghibli style anime illustration, soft cinematic lighting, whimsical background";
+    } else if (
+      lower.includes(
+        "logo"
+      )
+    ) {
+      style =
+        "clean modern logo design, vector style";
+    } else if (
+      lower.includes(
+        "thumbnail"
+      ) ||
+      lower.includes(
+        "youtube"
+      )
+    ) {
+      style =
+        "viral youtube thumbnail, dramatic composition, eye catching";
+    } else if (
+      lower.includes(
+        "poster"
+      )
+    ) {
+      style =
+        "cinematic poster art, dramatic lighting";
+    } else if (
+      lower.includes(
+        "realistic"
+      )
+    ) {
+      style =
+        "photorealistic ultra detailed professional photography";
+    }
+
+    const finalPrompt = `
+${style},
+${prompt},
+high resolution, masterpiece
+`.trim();
+
+    // ======================================
+    // HF MODEL
+    // ======================================
+    const res =
+      await fetch(
+        "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              `Bearer ${apiKey}`,
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(
+            {
+              inputs:
+                finalPrompt,
+            }
+          ),
+        }
+      );
+
+    if (!res.ok) {
+      throw new Error(
+        await res.text()
+      );
+    }
+
+    const arrayBuffer =
+      await res.arrayBuffer();
+
+    const base64 =
+      Buffer.from(
+        arrayBuffer
+      ).toString(
+        "base64"
+      );
+
+    // return image as data URL
+    return `data:image/png;base64,${base64}`;
   } catch (err) {
-    console.error("❌ Image Error:", err.message);
-    return "Error generating image";
+    console.error(
+      "❌ HF Image Error:",
+      err.message
+    );
+
+    return null;
   }
 }

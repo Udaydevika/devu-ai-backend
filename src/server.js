@@ -68,8 +68,8 @@ app.use(express.urlencoded({
   limit: "50mb"
 }));
 app.use(rateLimiter);
-app.use(express.static("public"));
 app.set("trust proxy", 1);
+app.use(express.static("public"));
 // ====================================
 // 🟢 HEALTH CHECK ROUTE
 // ====================================
