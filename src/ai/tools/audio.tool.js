@@ -1,23 +1,8 @@
-// src/ai/tools/audio.tool.js
-
 import fs from "fs";
 import path from "path";
 import os from "os";
-
 import FormData from "form-data";
 import fetch from "node-fetch";
-
-/**
- * ==========================================
- * 🔥 DevU AI AUDIO TOOL
- *
- * Supports:
- * ✅ Speech to text
- * ✅ Translate audio
- * ✅ Summarize meeting audio
- * ✅ Voice note understanding
- * ==========================================
- */
 
 export async function handleAudio(
   file,
@@ -26,32 +11,25 @@ export async function handleAudio(
   let tempPath = "";
 
   try {
-    // ==========================
-    // VALIDATE
-    // ==========================
-    if (
-      !file ||
-      !file.buffer
-    ) {
+    if (!file?.buffer) {
       return "⚠️ No audio file found.";
     }
 
     const apiKey =
-      process.env
-        .OPENROUTER_API_KEY;
+      process.env.GROQ_API_KEY;
 
-    if (!apiKey) {
-      return "⚠️ Missing OPENROUTER_API_KEY";
-    }
+    const name =
+      file.name ||
+      file.originalname ||
+      "voice_note.mp3";
 
     const ext =
-      path.extname(
-        file.originalname || ""
-      ) || ".mp3";
+      path.extname(name) ||
+      ".mp3";
 
     tempPath = path.join(
       os.tmpdir(),
-      `devu_audio_${Date.now()}${ext}`
+      `devu_${Date.now()}${ext}`
     );
 
     fs.writeFileSync(
@@ -59,36 +37,38 @@ export async function handleAudio(
       file.buffer
     );
 
-    // ==========================
-    // TRANSCRIBE
-    // ==========================
+    if (!apiKey) {
+      return `
+🎤 Audio Uploaded
+
+Speech API key missing.
+`;
+    }
+
     const form =
       new FormData();
 
     form.append(
       "file",
-      fs.createReadStream(
-        tempPath
-      )
+      fs.createReadStream(tempPath)
     );
 
     form.append(
       "model",
-      "openai/whisper-1"
+      "whisper-large-v3"
     );
 
-    const res =
-      await fetch(
-        "https://openrouter.ai/api/v1/audio/transcriptions",
-        {
-          method: "POST",
-          headers: {
-            Authorization:
-              `Bearer ${apiKey}`,
-          },
-          body: form,
-        }
-      );
+    const res = await fetch(
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            `Bearer ${apiKey}`,
+        },
+        body: form,
+      }
+    );
 
     if (!res.ok) {
       throw new Error(
@@ -100,84 +80,69 @@ export async function handleAudio(
       await res.json();
 
     const text =
-      data?.text
-        ?.trim() || "";
+      data?.text?.trim() ||
+      "";
 
     if (!text) {
-      return "⚠️ Could not understand audio.";
+      return `
+🎤 Audio received.
+
+No speech detected clearly.
+`;
     }
 
-    // ==========================
-    // SMART ACTIONS
-    // ==========================
-    const prompt =
-      (
-        userPrompt || ""
-      ).toLowerCase();
+    const p =
+      userPrompt.toLowerCase();
 
-    // Translate
     if (
-      prompt.includes(
-        "translate"
-      )
+      p.includes("summary") ||
+      p.includes("summarize")
     ) {
-      return `🌍 Translation Request
+      return `
+📝 Audio Summary
 
-Original Transcript:
+${text.substring(0, 2500)}
+`;
+    }
+
+    if (
+      p.includes("translate")
+    ) {
+      return `
+🌍 Audio Transcript
 
 ${text}
-
-(Use DevU AI chat prompt:
-"Translate this to English/Hindi/Kannada")`;
+`;
     }
 
-    // Summary
-    if (
-      prompt.includes(
-        "summary"
-      ) ||
-      prompt.includes(
-        "summarize"
-      ) ||
-      prompt.includes(
-        "meeting"
-      )
-    ) {
-      const short =
-        text.length > 2500
-          ? text.substring(
-              0,
-              2500
-            )
-          : text;
+    return `
+🎤 Audio Transcription Complete
 
-      return `📝 Audio Summary Preview
-
-${short}`;
-    }
-
-    // Default transcript
-    return `🎤 Audio Transcription Complete
-
-${text}`;
+${text}
+`;
   } catch (err) {
     console.error(
-      "❌ Audio tool error:",
+      "Audio error:",
       err.message
     );
 
-    return "⚠️ Failed to process audio.";
+    return `
+🎤 Audio uploaded.
+
+Transcription temporarily unavailable.
+`;
   } finally {
     try {
       if (
         tempPath &&
         fs.existsSync(
-          tempPath)
+          tempPath
+        )
       ) {
         fs.unlinkSync(
           tempPath
         );
       }
-    } catch (_) {}
+    } catch {}
   }
 }

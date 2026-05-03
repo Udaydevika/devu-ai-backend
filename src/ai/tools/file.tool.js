@@ -1,65 +1,49 @@
 import * as pdf from "pdf-parse";
 import mammoth from "mammoth";
 
-/**
- * ==========================================
- * 🔥 DevU AI File Tool
- * Supports:
- * ✅ PDF
- * ✅ DOCX
- * ✅ TXT
- * ==========================================
- */
-
 export async function handleFile(file) {
   try {
     let text = "";
 
-    // ==========================
-    // 📄 PDF
-    // ==========================
-    if (
-      file.mimetype ===
-      "application/pdf"
-    ) {
+    const mime =
+      file.mimeType ||
+      file.mimetype ||
+      "";
+
+    const name = (
+      file.name ||
+      file.originalname ||
+      ""
+    ).toLowerCase();
+
+    // PDF
+    if (mime.includes("pdf")) {
       const data =
         await pdf(file.buffer);
-
       text = data.text;
     }
 
-    // ==========================
-    // 📝 DOCX
-    // ==========================
+    // DOCX
     else if (
-      file.mimetype.includes(
-        "wordprocessingml"
-      ) ||
-      file.originalname
-        ?.toLowerCase()
-        .endsWith(".docx")
+      mime.includes("word") ||
+      name.endsWith(".docx")
     ) {
       const data =
-        await mammoth.extractRawText(
-          {
-            buffer:
-              file.buffer,
-          }
-        );
+        await mammoth.extractRawText({
+          buffer: file.buffer,
+        });
 
       text = data.value;
     }
 
-    // ==========================
-    // 📄 TXT
-    // ==========================
+    // TXT / CSV / JSON
     else if (
-      file.mimetype.includes(
-        "text"
-      ) ||
-      file.originalname
-        ?.toLowerCase()
-        .endsWith(".txt")
+      mime.includes("text") ||
+      mime.includes("json") ||
+      mime.includes("csv") ||
+      name.endsWith(".txt") ||
+      name.endsWith(".csv") ||
+      name.endsWith(".json")
     ) {
       text =
         file.buffer.toString(
@@ -67,9 +51,6 @@ export async function handleFile(file) {
         );
     }
 
-    // ==========================
-    // ❌ Unsupported
-    // ==========================
     else {
       return "⚠️ Unsupported file type.";
     }
@@ -82,16 +63,26 @@ export async function handleFile(file) {
       return "⚠️ No readable text found.";
     }
 
-    // Limit size for AI
-    const shortText =
-      text.slice(0, 6000);
+    const short =
+      text.length > 5000
+        ? text.substring(0, 5000)
+        : text;
 
     return `
-📄 Document processed successfully.
+📄 File Read Successfully
 
-Summary Preview:
+📌 File Name:
+${name}
 
-${shortText}
+📝 Summary Preview:
+
+${short}
+
+💡 Ask:
+• Summarize this
+• Explain key points
+• Convert to notes
+• Translate document
 `;
   } catch (err) {
     console.error(
@@ -99,6 +90,6 @@ ${shortText}
       err.message
     );
 
-    return "⚠️ Failed to process document.";
+    return "⚠️ Failed to process file.";
   }
 }

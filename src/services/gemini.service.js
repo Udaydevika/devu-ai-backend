@@ -4,8 +4,10 @@ import fetch from "node-fetch";
  * ==========================================
  * 🔥 DevU AI Gemini Text + Vision Service
  * Supports:
- * ✅ normal chat
- * ✅ image understanding
+ * ✅ Normal chat
+ * ✅ Camera / Photos
+ * ✅ Image understanding
+ * ✅ Fast token streaming
  * ==========================================
  */
 
@@ -21,36 +23,78 @@ export async function streamGemini(
   }
 
   const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=" +
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
     apiKey;
 
-  // ==========================================
-  // 🧠 TEXT ONLY MODE
-  // ==========================================
   let contents = [];
 
+  // ==========================================
+  // 🧠 NORMAL CHAT MODE
+  // ==========================================
   if (!imageBuffer) {
-    contents = messages.map((m) => ({
-      role:
-        m.role === "assistant"
-          ? "model"
-          : "user",
-      parts: [
-        {
-          text: m.content,
-        },
-      ],
-    }));
+    contents = messages.map((m) => {
+      let text = "";
+
+      if (Array.isArray(m.content)) {
+        text = m.content
+          .filter((p) => p.type === "text")
+          .map((p) => p.text || "")
+          .join(" ");
+      } else {
+        text = String(m.content || "");
+      }
+
+      return {
+        role:
+          m.role === "assistant"
+            ? "model"
+            : "user",
+        parts: [
+          {
+            text:
+              text.trim() ||
+              "Hello",
+          },
+        ],
+      };
+    });
   }
 
   // ==========================================
-  // 🖼️ IMAGE + TEXT MODE
+  // 🖼️ CAMERA / PHOTO MODE
   // ==========================================
   else {
-    const prompt =
-      messages?.[messages.length - 1]
-        ?.content ||
-      "Explain this image";
+    let prompt =
+      "Explain this image clearly.";
+
+    const last =
+      messages[
+        messages.length - 1
+      ]?.content;
+
+    if (Array.isArray(last)) {
+      prompt = last
+        .filter(
+          (p) =>
+            p.type ===
+            "text"
+        )
+        .map(
+          (p) =>
+            p.text || ""
+        )
+        .join(" ")
+        .trim();
+    } else if (last) {
+      prompt = String(
+        last
+      ).trim();
+    }
+
+    if (!prompt) {
+      prompt =
+        "Explain this image clearly.";
+    }
 
     contents = [
       {
@@ -61,7 +105,8 @@ export async function streamGemini(
           },
           {
             inline_data: {
-              mime_type: mimeType,
+              mime_type:
+                mimeType,
               data: imageBuffer.toString(
                 "base64"
               ),
@@ -73,7 +118,7 @@ export async function streamGemini(
   }
 
   // ==========================================
-  // 🚀 API REQUEST
+  // 🚀 GEMINI REQUEST
   // ==========================================
   const res = await fetch(url, {
     method: "POST",
@@ -85,7 +130,8 @@ export async function streamGemini(
       contents,
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
+        topP: 0.95,
       },
     }),
   });
@@ -105,7 +151,8 @@ export async function streamGemini(
 
   const text = parts
     .map(
-      (p) => p.text || ""
+      (p) =>
+        p.text || ""
     )
     .join("")
     .trim();
@@ -121,7 +168,7 @@ export async function streamGemini(
 
     const chunks =
       text.match(
-        /.{1,40}/g
+        /.{1,35}/g
       ) || [];
 
     for (const chunk of chunks) {
@@ -129,7 +176,10 @@ export async function streamGemini(
 
       await new Promise(
         (r) =>
-          setTimeout(r, 15)
+          setTimeout(
+            r,
+            12
+          )
       );
     }
   }

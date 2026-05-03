@@ -1,30 +1,21 @@
-// src/controllers/chat.stream.controller.js
-
-import multer from "multer";
-
 import { streamOpenRouter } from "../services/openrouter.service.js";
 import { streamGemini } from "../services/gemini.service.js";
 import { streamGroq } from "../services/groq.service.js";
 import { streamHuggingFace } from "../services/huggingface.service.js";
 
 import { detectTool } from "../ai/toolRouter.js";
+
 import { handleFile } from "../ai/tools/file.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
+import { handleAudio } from "../ai/tools/audio.tool.js";
 import { generateImage } from "../ai/tools/image.tool.js";
 import { getLiveNews } from "../ai/tools/news.tool.js";
 
 // ==========================
-// 📦 MULTER
-// ==========================
-const upload = multer({
-  storage: multer.memoryStorage(),
-});
-
-// ==========================
-// 🛡 SAFE SSE SEND
+// SSE SAFE SEND
 // ==========================
 function send(res, type, content) {
-  if (!content || content.toString().trim() === "") return;
+  if (!content) return;
 
   res.write(
     `data: ${JSON.stringify({
@@ -37,147 +28,138 @@ function send(res, type, content) {
 }
 
 // ==========================
-// 🧠 MODEL NORMALIZER
+// MODEL
 // ==========================
 function normalizeModel(model) {
   if (!model) return "smart";
 
-  const m = model.toLowerCase().trim();
+  const m = model.toLowerCase();
 
   const map = {
     smart: "smart",
-    gpt4o: "gpt4o",
-    "gpt-4o-mini": "gpt-4o-mini",
-    gemini: "gemini",
     groq: "groq",
-    huggingface: "huggingface",
+    gpt4o: "gpt4o",
+    gemini: "gemini",
+    huggingface:
+      "huggingface",
   };
 
   return map[m] || "smart";
 }
 
 // ==========================
-// ⚡ SMART MODE
+// FASTEST ORDER
 // ==========================
-function chooseSmartFallback(text = "") {
-  const q = text.toLowerCase();
-
-  const hard =
-    q.includes("code") ||
-    q.includes("flutter") ||
-    q.includes("firebase") ||
-    q.includes("app") ||
-    q.includes("business") ||
-    q.includes("money") ||
-    q.includes("strategy") ||
-    q.includes("fix") ||
-    q.length > 120;
-
-  if (hard) {
-    return ["gpt4o", "groq", "gemini"];
-  }
-
-  return ["groq", "gpt4o", "gemini"];
+function chooseSmartFallback() {
+  return [
+    "groq",
+    "gpt4o",
+    "gemini",
+    "huggingface",
+  ];
 }
 
 // ==========================
-// 🚀 ULTRA SPEED MODE
-// ==========================
-async function getFastestStream(messages, files) {
-  return Promise.any([
-    (async () => {
-      const stream = await streamGroq(messages);
-      return { name: "groq", stream };
-    })(),
-
-    (async () => {
-      const stream = await streamOpenRouter(
-        messages,
-        files,
-        "gpt4o"
-      );
-      return {
-        name: "openrouter",
-        stream,
-      };
-    })(),
-  ]);
-}
-
-// ==========================
-// 🚀 CONTROLLER
+// CONTROLLER
 // ==========================
 export const chatStreamController = [
   async (req, res) => {
     try {
       let { model } = req.body;
-      model = normalizeModel(model);
+      model =
+        normalizeModel(model);
 
-      let messages;
-
-      try {
-        messages =
-          typeof req.body.messages ===
-          "string"
-            ? JSON.parse(
-                req.body.messages
-              )
-            : req.body.messages;
-      } catch {
-        return res
-          .status(400)
-          .json({
-            error:
-              "Invalid messages JSON",
-          });
-      }
+      let messages =
+        typeof req.body
+          .messages ===
+        "string"
+          ? JSON.parse(
+              req.body
+                .messages
+            )
+          : req.body.messages;
 
       if (
-        !Array.isArray(messages) ||
+        !Array.isArray(
+          messages
+        ) ||
         messages.length === 0
       ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              "messages required",
-          });
+        return res.status(400).json({
+          error:
+            "messages required",
+        });
       }
 
       // ==========================
-      // 📎 FILES
+      // FILES
       // ==========================
       const rawFiles =
         req.files || [];
 
-      const files = rawFiles.map(
-        (f) => ({
-          name: f.originalname,
-          mimeType: f.mimetype,
-          bytes: f.buffer,
-          buffer: f.buffer,
-        })
-      );
+      if (rawFiles.length > 0) {
+        console.log(
+          "📎 Upload:",
+          rawFiles.map(
+            (f) => ({
+              name:
+                f.originalname,
+              type:
+                f.mimetype,
+              size:
+                f.size,
+            })
+          )
+        );
+      }
+
+      const files =
+        rawFiles.map(
+          (f) => ({
+            name:
+              f.originalname,
+            mimeType:
+              f.mimetype,
+            buffer:
+              f.buffer,
+          })
+        );
 
       const lastRaw =
-messages[messages.length - 1]?.content;
+        messages[
+          messages.length -
+            1
+        ]?.content;
 
-const lastMessage =
-typeof lastRaw === "string"
-  ? lastRaw
-  : Array.isArray(lastRaw)
-  ? lastRaw
-      .filter((p) => p.type === "text")
-      .map((p) => p.text || "")
-      .join(" ")
-  : "";
-      const tool = detectTool(
-        lastMessage,
-        files
-      );
+      const lastMessage =
+        Array.isArray(
+          lastRaw
+        )
+          ? lastRaw
+              .filter(
+                (p) =>
+                  p.type ===
+                  "text"
+              )
+              .map(
+                (p) =>
+                  p.text ||
+                  ""
+              )
+              .join(" ")
+          : String(
+              lastRaw ||
+                ""
+            );
+
+      let tool =
+        detectTool(
+          lastMessage,
+          files
+        );
 
       // ==========================
-      // 📡 SSE HEADERS
+      // SSE HEADERS
       // ==========================
       res.writeHead(200, {
         "Content-Type":
@@ -186,64 +168,60 @@ typeof lastRaw === "string"
           "no-cache",
         Connection:
           "keep-alive",
+        "X-Accel-Buffering":
+          "no",
       });
 
       res.flushHeaders?.();
-      res.write(":\n\n");
-      res.flush?.();
+     res.write(":\n\n");
 
+// 🔥 KEEPALIVE PING
+const ping = setInterval(() => {
+  try {
+    res.write(":\n\n");
+  } catch (_) {}
+}, 15000);
       // ==========================
-      // 📰 NEWS
-      // ==========================
-      if (tool === "search") {
-        const news =
-          await getLiveNews(
-            lastMessage
-          );
-
-        send(
-          res,
-          "news",
-          news
-        );
-
-        res.write(
-          "data: [DONE]\n\n"
-        );
-
-        return res.end();
-      }
-
-      // ==========================
-      // 🖼 IMAGE
-      // ==========================
-      if (tool === "image") {
-        const image =
-          await generateImage(
-            lastMessage
-          );
-
-        send(
-          res,
-          "image",
-          image
-        );
-
-        res.write(
-          "data: [DONE]\n\n"
-        );
-
-        return res.end();
-      }
-
-      // ==========================
-      // 📄 FILE
+      // IMAGE VISION
       // ==========================
       if (
-        tool === "file" &&
+        tool ===
+          "vision" &&
         files.length > 0
       ) {
-        const result =
+        const stream =
+          await streamGemini(
+            messages,
+            files[0]
+              .buffer,
+            files[0]
+              .mimeType
+          );
+
+        for await (const token of stream) {
+          send(
+            res,
+            "text",
+            token
+          );
+        }
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+        clearInterval(ping);
+        return res.end();
+      }
+
+      // ==========================
+      // FILE
+      // ==========================
+      if (
+        tool ===
+          "file" &&
+        files.length > 0
+      ) {
+        const out =
           await handleFile(
             files[0]
           );
@@ -251,140 +229,151 @@ typeof lastRaw === "string"
         send(
           res,
           "file",
-          result
+          out
         );
 
         res.write(
           "data: [DONE]\n\n"
         );
-
+        clearInterval(ping);
         return res.end();
       }
 
       // ==========================
-      // 🎬 VIDEO
+      // AUDIO
       // ==========================
       if (
-        tool === "video" &&
+        tool ===
+          "audio" &&
         files.length > 0
       ) {
-        const result =
-          await handleVideo(
-            files[0]
-          );
+        const out = await handleAudio(
+  files[0],
+  lastMessage
+);
+
+        send(
+          res,
+          "audio",
+          out
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+        clearInterval(ping);
+        return res.end();
+      }
+
+      // ==========================
+      // VIDEO
+      // ==========================
+      if (tool === "video" && files.length > 0) {
+  const out =
+    await handleVideo(
+      files[0],
+      lastMessage
+    );
 
         send(
           res,
           "video",
-          result
+          out
         );
 
         res.write(
           "data: [DONE]\n\n"
         );
-
+        clearInterval(ping);
         return res.end();
       }
 
-      if (tool === "audio" && files.length > 0) {
-  const result = await handleAudio(files[0]);
-  send(res, "audio", result);
-
-   res.write(
-          "data: [DONE]\n\n"
-        );
-
-        return res.end();
-}
-
       // ==========================
-      // 💎 PREMIUM PROMPT
+      // NEWS
       // ==========================
-      const systemMessage = {
-        role: "system",
-        content: `
-You are DevU AI.
-
-Smart, fast, practical.
-
-Rules:
-- Clear answers
-- Helpful first
-- Avoid robotic tone
-- Use steps when useful
-- Give real solutions
-- Good coding help
-- Smart business advice
-- Never hallucinate
-`,
-      };
-
-      const cleanMessages = [
-  systemMessage,
-  ...messages,
-].filter((m) => {
-  if (typeof m.role !== "string") return false;
-
-  if (typeof m.content === "string") {
-    return m.content.trim().length > 0;
-  }
-
-  if (Array.isArray(m.content)) {
-    return m.content.length > 0;
-  }
-
-  return false;
-});
-
-      // ==========================
-      // 🚀 ULTRA SPEED PREMIUM
-      // ==========================
-      const isPremium =
-        req.user?.isPremium ===
-        true;
-
-      if (isPremium) {
-        try {
-          const fastest =
-            await getFastestStream(
-              cleanMessages,
-              files
-            );
-
-          for await (const token of fastest.stream) {
-            send(
-              res,
-              "text",
-              token
-            );
-          }
-
-          res.write(
-            "data: [DONE]\n\n"
+      if (
+        tool ===
+        "search"
+      ) {
+        const out =
+          await getLiveNews(
+            lastMessage
           );
 
-          return res.end();
-        } catch (err) {
- console.error(current, err.message);
-}
+        send(
+          res,
+          "news",
+          out
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+        clearInterval(ping);
+        return res.end();
       }
 
       // ==========================
-      // ⚡ SMART MODE
+      // IMAGE GEN
       // ==========================
+      if (
+        tool ===
+        "image"
+      ) {
+        const out =
+          await generateImage(
+            lastMessage
+          );
+
+        send(
+          res,
+          "image",
+          out
+        );
+
+        res.write(
+          "data: [DONE]\n\n"
+        );
+        clearInterval(ping);
+        return res.end();
+      }
+
+      // ==========================
+      // CHAT MODELS
+      // ==========================
+      const systemMessage =
+        {
+          role:
+            "system",
+          content:
+            "You are DevU AI. Smart, fast, practical.",
+        };
+
+      const cleanMessages =
+        [
+          systemMessage,
+          ...messages,
+        ];
+
       const fallback =
-        model === "smart"
-          ? chooseSmartFallback(
-              lastMessage
-            )
-          : [model, "groq", "gemini"];
+        model ===
+        "smart"
+          ? chooseSmartFallback()
+          : [
+              model,
+              "groq",
+              "gpt4o",
+              "gemini",
+              "huggingface",
+            ];
 
       for (const current of fallback) {
         try {
           let stream;
 
           if (
-            current === "groq"
+            current ===
+            "groq"
           ) {
             stream =
               await streamGroq(
@@ -392,15 +381,13 @@ Rules:
               );
           } else if (
             current ===
-              "gpt4o" ||
-            current ===
-              "gpt-4o-mini"
+            "gpt4o"
           ) {
             stream =
               await streamOpenRouter(
                 cleanMessages,
                 files,
-                current
+                "gpt4o"
               );
           } else if (
             current ===
@@ -428,16 +415,16 @@ Rules:
           res.write(
             "data: [DONE]\n\n"
           );
-
+          clearInterval(ping);
           return res.end();
         } catch (err) {
- console.error(current, err.message);
-}
+          console.log(
+            "Fallback:",
+            current
+          );
+        }
       }
 
-      // ==========================
-      // ❌ TOTAL FAIL
-      // ==========================
       send(
         res,
         "text",
@@ -447,7 +434,7 @@ Rules:
       res.write(
         "data: [DONE]\n\n"
       );
-
+      clearInterval(ping);
       res.end();
     } catch (err) {
       send(
@@ -459,7 +446,7 @@ Rules:
       res.write(
         "data: [DONE]\n\n"
       );
-
+      clearInterval(ping);
       res.end();
     }
   },

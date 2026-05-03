@@ -18,7 +18,7 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
+    fileSize: 20 * 1024 * 1024, // 20MB
     files: 5,
   },
 });
@@ -65,7 +65,24 @@ router.post(
   "/chat/stream",
   ensureUser,
   freeChatLimiter,
-  upload.array("files", 5),
+
+  (req, res, next) => {
+    upload.array("files", 5)(
+      req,
+      res,
+      function (err) {
+        if (err) {
+          return res.status(400).json({
+            error:
+              "Upload failed. File too large or invalid.",
+          });
+        }
+
+        next();
+      }
+    );
+  },
+
   ...chatStreamController
 );
 

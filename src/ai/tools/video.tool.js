@@ -1,3 +1,5 @@
+// src/ai/tools/video.tool.js
+
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -7,16 +9,23 @@ import { streamGemini } from "../../services/gemini.service.js";
 import { trimVideo } from "../../utils/videoEditor.js";
 import { addCaptionToVideo } from "../../utils/captionVideo.js";
 
+const BASE_URL =
+  process.env.PUBLIC_URL ||
+  "https://devu-ai.onrender.com";
+
 /**
  * ==========================================
- * 🔥 DevU AI FINAL VIDEO TOOL
- * Production Optimized
+ * 🔥 DevU AI ULTRA FAST VIDEO TOOL v2
+ *
+ * Optimized for Render / VPS / Low RAM
  *
  * Supports:
- * ✅ Viral Reel (vertical + caption)
- * ✅ Smart Highlights
- * ✅ 30 sec Reel
- * ✅ Video Analysis
+ * ✅ Viral Reel
+ * ✅ Auto Caption Reel
+ * ✅ Smart Highlight
+ * ✅ 30 sec Clip
+ * ✅ Fast Video Analysis
+ * ✅ Large File Safe Mode
  * ==========================================
  */
 
@@ -27,13 +36,10 @@ export async function handleVideo(
   let tempPath = "";
 
   try {
-    // =====================================
-    // 📁 VALIDATE FILE
-    // =====================================
-    if (
-      !file ||
-      !file.buffer
-    ) {
+    // ==========================
+    // VALIDATE
+    // ==========================
+    if (!file || !file.buffer) {
       return "⚠️ No video file found.";
     }
 
@@ -43,10 +49,36 @@ export async function handleVideo(
       ) || ".mp4";
 
     const prompt =
-      (
-        userPrompt || ""
-      ).toLowerCase();
+      (userPrompt || "")
+        .toLowerCase()
+        .trim();
 
+    const sizeMB =
+      file.buffer.length /
+      1024 /
+      1024;
+
+    console.log(
+      "🎬 Video Upload:",
+      file.originalname,
+      sizeMB.toFixed(1) + "MB"
+    );
+
+    // ==========================
+    // LARGE FILE SAFE MODE
+    // ==========================
+    if (sizeMB > 20) {
+      return `🎬 Video Uploaded Successfully
+
+Large file detected (${sizeMB.toFixed(1)} MB)
+
+For instant editing, please upload videos under 20MB.
+Heavy processing mode is being upgraded.`;
+    }
+
+    // ==========================
+    // PUBLIC FOLDER
+    // ==========================
     const publicDir =
       path.join(
         process.cwd(),
@@ -66,9 +98,9 @@ export async function handleVideo(
       );
     }
 
-    // =====================================
-    // 📁 SAVE TEMP VIDEO
-    // =====================================
+    // ==========================
+    // SAVE TEMP VIDEO
+    // ==========================
     tempPath = path.join(
       os.tmpdir(),
       `devu_video_${Date.now()}${ext}`
@@ -79,9 +111,9 @@ export async function handleVideo(
       file.buffer
     );
 
-    // =====================================
-    // 🔥 MODE 1: VIRAL REEL
-    // =====================================
+    // ==========================
+    // MODE 1: VIRAL REEL
+    // ==========================
     if (
       prompt.includes(
         "viral"
@@ -121,7 +153,7 @@ export async function handleVideo(
         reel.buffer
       );
 
-      const captioned =
+      const finalVideo =
         await addCaptionToVideo(
           reelTemp,
           "🔥 Watch Till End"
@@ -137,18 +169,18 @@ export async function handleVideo(
         );
 
       fs.copyFileSync(
-        captioned,
+        finalVideo,
         finalPath
       );
 
-      return `🔥 Viral Reel Ready:
+      return `🔥 Viral Reel Ready
 
-https://devu-ai.onrender.com/${finalName}`;
+${BASE_URL}/${finalName}`;
     }
 
-    // =====================================
-    // 🔥 MODE 2: SMART HIGHLIGHTS
-    // =====================================
+    // ==========================
+    // MODE 2: SMART HIGHLIGHT
+    // ==========================
     if (
       prompt.includes(
         "highlight"
@@ -174,12 +206,13 @@ https://devu-ai.onrender.com/${finalName}`;
 
       const scored = [];
 
+      // FAST MODE: only 2 frames
       for (
         let i = 0;
         i <
         Math.min(
-          frames.length,
-          5
+          2,
+          frames.length
         );
         i++
       ) {
@@ -194,15 +227,14 @@ https://devu-ai.onrender.com/${finalName}`;
               {
                 role: "user",
                 content:
-                  "Give excitement score from 1 to 10. Return only number.",
+                  "Rate excitement from 1 to 10. Return number only.",
               },
             ],
             img,
             "image/png"
           );
 
-        let txt =
-          "";
+        let txt = "";
 
         for await (const t of stream) {
           txt += t;
@@ -255,23 +287,23 @@ https://devu-ai.onrender.com/${finalName}`;
         reel.buffer
       );
 
-      return `🔥 Smart Highlight Ready:
+      return `🔥 Smart Highlight Ready
 
-https://devu-ai.onrender.com/${reel.filename}`;
+${BASE_URL}/${reel.filename}`;
     }
 
-    // =====================================
-    // 🎬 MODE 3: SIMPLE REEL
-    // =====================================
+    // ==========================
+    // MODE 3: SIMPLE 30 SEC CLIP
+    // ==========================
     if (
       prompt.includes(
         "30 sec"
       ) ||
       prompt.includes(
-        "reel"
+        "clip"
       ) ||
       prompt.includes(
-        "clip"
+        "reel"
       )
     ) {
       const reel =
@@ -296,14 +328,14 @@ https://devu-ai.onrender.com/${reel.filename}`;
         reel.buffer
       );
 
-      return `🎬 Reel Ready:
+      return `🎬 Clip Ready
 
-https://devu-ai.onrender.com/${reel.filename}`;
+${BASE_URL}/${reel.filename}`;
     }
 
-    // =====================================
-    // 🎬 MODE 4: VIDEO ANALYSIS
-    // =====================================
+    // ==========================
+    // MODE 4: FAST ANALYSIS
+    // ==========================
     const frames =
       await extractFrames(
         tempPath
@@ -318,11 +350,12 @@ https://devu-ai.onrender.com/${reel.filename}`;
 
     const notes = [];
 
+    // FAST MODE: 2 frames only
     for (
       let i = 0;
       i <
       Math.min(
-        3,
+        2,
         frames.length
       );
       i++
@@ -345,8 +378,7 @@ https://devu-ai.onrender.com/${reel.filename}`;
           "image/png"
         );
 
-      let text =
-        "";
+      let text = "";
 
       for await (const t of stream) {
         text += t;
@@ -358,27 +390,24 @@ https://devu-ai.onrender.com/${reel.filename}`;
     }
 
     const summaryStream =
-      await streamGemini(
-        [
-          {
-            role: "user",
-            content: `
+      await streamGemini([
+        {
+          role: "user",
+          content: `
 Summarize this video:
 
 ${notes.join("\n")}
 `,
-          },
-        ]
-      );
+        },
+      ]);
 
-    let summary =
-      "";
+    let summary = "";
 
     for await (const t of summaryStream) {
       summary += t;
     }
 
-    return `🎬 Video Analysis Complete:
+    return `🎬 Video Analysis Complete
 
 ${summary}`;
   } catch (err) {

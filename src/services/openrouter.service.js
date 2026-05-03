@@ -51,19 +51,22 @@ export async function streamOpenRouter(
   // ===============================
   // 🖼 IMAGE SUPPORT
   // ===============================
-  if (files?.length > 0) {
-    const images = files
-      .filter((f) =>
-        f?.mimeType?.startsWith("image/")
-      )
-      .map((f) => ({
-        type: "image_url",
-        image_url: {
-          url: `data:${f.mimeType};base64,${f.bytes.toString(
-            "base64"
-          )}`,
-        },
-      }));
+ if (files?.length > 0) {
+  const images = files
+    .filter((f) =>
+      f?.mimeType?.startsWith("image/")
+    )
+    .filter((f) =>
+      f?.buffer || f?.bytes
+    )
+    .map((f) => ({
+      type: "image_url",
+      image_url: {
+        url: `data:${f.mimeType};base64,${(
+          f.buffer || f.bytes
+        ).toString("base64")}`,
+      },
+    }));
 
     if (images.length > 0) {
       const lastUserIndex = [...chatMessages]
@@ -103,7 +106,7 @@ export async function streamOpenRouter(
 
   const timeout = setTimeout(() => {
     controller.abort();
-  }, 20000);
+  }, 30000);
 
   let res;
 
@@ -130,7 +133,8 @@ export async function streamOpenRouter(
         body: JSON.stringify({
           model: finalModel,
           stream: true,
-          max_tokens: 1024,
+          max_tokens: 2048,
+          temperature: 0.6,
           messages: chatMessages,
         }),
       }
