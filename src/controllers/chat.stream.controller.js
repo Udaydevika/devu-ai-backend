@@ -1,3 +1,5 @@
+// src/controllers/chat.stream.controller.js
+
 import { streamOpenRouter } from "../services/openrouter.service.js";
 import { streamGemini } from "../services/gemini.service.js";
 import { streamGroq } from "../services/groq.service.js";
@@ -16,28 +18,28 @@ import { createPDF } from "../ai/tools/pdf.tool.js";
 import { generateResume } from "../ai/tools/resume.tool.js";
 
 /**
- * ==========================================
+ * ======================================================
  * 🔥 DevU AI FINAL CREATOR MODE CONTROLLER
  *
  * Supports:
  * ✅ Normal Chat
- * ✅ Smart Fallback Models
- * ✅ Camera / Photo AI
+ * ✅ Smart Model Fallback
+ * ✅ Camera / Photos / Vision
  * ✅ OCR Scanner
- * ✅ PDF / DOCX / TXT / CSV
- * ✅ Audio / Voice Notes
+ * ✅ Audio Upload / Transcribe
  * ✅ Video Upload / Edit
- * ✅ Resume Generator
+ * ✅ PDF / DOCX / TXT / CSV
+ * ✅ Resume Builder
  * ✅ PDF Export
- * ✅ Image Generation
+ * ✅ Ghibli / AI Images
  * ✅ Download Cards
  * ✅ News Search
- * ==========================================
+ * ======================================================
  */
 
-// ==========================================
+// ======================================================
 // SSE SEND
-// ==========================================
+// ======================================================
 function send(res, type, content) {
   if (
     content === undefined ||
@@ -54,9 +56,9 @@ function send(res, type, content) {
   res.flush?.();
 }
 
-// ==========================================
+// ======================================================
 // DOWNLOAD CARD
-// ==========================================
+// ======================================================
 function sendDownload(
   res,
   title,
@@ -70,9 +72,9 @@ function sendDownload(
   });
 }
 
-// ==========================================
+// ======================================================
 // DONE
-// ==========================================
+// ======================================================
 function done(res, ping) {
   clearInterval(ping);
 
@@ -85,9 +87,9 @@ function done(res, ping) {
   return res.end();
 }
 
-// ==========================================
+// ======================================================
 // START SSE
-// ==========================================
+// ======================================================
 function startSSE(res) {
   res.writeHead(200, {
     "Content-Type":
@@ -111,9 +113,9 @@ function startSSE(res) {
   }, 15000);
 }
 
-// ==========================================
-// MODEL NORMALIZE
-// ==========================================
+// ======================================================
+// MODEL
+// ======================================================
 function normalizeModel(model) {
   const m = String(
     model || "smart"
@@ -132,9 +134,6 @@ function normalizeModel(model) {
     : "smart";
 }
 
-// ==========================================
-// MODEL ORDER
-// ==========================================
 function fallbackOrder(model) {
   if (model === "smart") {
     return [
@@ -154,9 +153,9 @@ function fallbackOrder(model) {
   ];
 }
 
-// ==========================================
-// LAST TEXT
-// ==========================================
+// ======================================================
+// LAST USER TEXT
+// ======================================================
 function getLastText(
   messages = []
 ) {
@@ -185,18 +184,18 @@ function getLastText(
   ).trim();
 }
 
-// ==========================================
+// ======================================================
 // CONTROLLER
-// ==========================================
+// ======================================================
 export const chatStreamController =
   [
     async (req, res) => {
       let ping = null;
 
       try {
-        // ======================
+        // ====================================
         // BODY
-        // ======================
+        // ====================================
         let { model } =
           req.body;
 
@@ -234,12 +233,21 @@ export const chatStreamController =
         ping =
           startSSE(res);
 
-        // ======================
-        // FILES
-        // ======================
+        // ====================================
+        // FILE INPUT FIX
+        // ====================================
         const rawFiles =
-          req.files ||
-          [];
+          req.files
+            ? Array.isArray(
+                req.files
+              )
+              ? req.files
+              : Object.values(
+                  req.files
+                ).flat()
+            : req.file
+            ? [req.file]
+            : [];
 
         const files =
           rawFiles.map(
@@ -266,14 +274,60 @@ export const chatStreamController =
             files
           );
 
-        // ==================================
+        // ====================================
         // FILE UPLOAD ROUTER
-        // ==================================
+        // ====================================
         if (
           files.length > 0
         ) {
           try {
-            // OCR / Scanner
+            // ----------------
+            // GHIBLI UPLOAD
+            // ----------------
+            if (
+              tool ===
+              "ghibli"
+            ) {
+              const url =
+                await generateImage(
+                  `Studio Ghibli style portrait, anime style, cinematic lighting. ${prompt}`
+                );
+
+              if (!url) {
+                send(
+                  res,
+                  "text",
+                  "⚠️ Failed to generate image."
+                );
+
+                return done(
+                  res,
+                  ping
+                );
+              }
+
+              send(
+                res,
+                "image",
+                url
+              );
+
+              sendDownload(
+                res,
+                "Ghibli Art Ready",
+                url,
+                "image"
+              );
+
+              return done(
+                res,
+                ping
+              );
+            }
+
+            // ----------------
+            // OCR
+            // ----------------
             if (
               tool ===
               "ocr"
@@ -296,7 +350,9 @@ export const chatStreamController =
               );
             }
 
-            // Vision
+            // ----------------
+            // CAMERA / PHOTO
+            // ----------------
             if (
               tool ===
               "vision"
@@ -324,7 +380,9 @@ export const chatStreamController =
               );
             }
 
-            // Audio
+            // ----------------
+            // AUDIO
+            // ----------------
             if (
               tool ===
               "audio"
@@ -337,7 +395,7 @@ export const chatStreamController =
 
               send(
                 res,
-                "text",
+                "audio",
                 out
               );
 
@@ -347,7 +405,9 @@ export const chatStreamController =
               );
             }
 
-            // Video
+            // ----------------
+            // VIDEO
+            // ----------------
             if (
               tool ===
               "video"
@@ -365,6 +425,12 @@ export const chatStreamController =
                   "http"
                 )
               ) {
+                send(
+                  res,
+                  "video",
+                  out
+                );
+
                 sendDownload(
                   res,
                   "Edited Video Ready",
@@ -385,7 +451,9 @@ export const chatStreamController =
               );
             }
 
-            // Documents
+            // ----------------
+            // FILES
+            // ----------------
             if (
               tool ===
               "file"
@@ -436,9 +504,9 @@ export const chatStreamController =
           }
         }
 
-        // ==================================
-        // RESUME BUILDER
-        // ==================================
+        // ====================================
+        // RESUME
+        // ====================================
         if (
           tool ===
           "resume"
@@ -461,33 +529,53 @@ export const chatStreamController =
           );
         }
 
-        // ==================================
-        // IMAGE GENERATION
-        // ==================================
-       if (tool === "image") {
-  const url =
-    await generateImage(prompt);
+        // ====================================
+        // IMAGE GEN
+        // ====================================
+        if (
+          tool ===
+          "image"
+        ) {
+          const url =
+            await generateImage(
+              prompt
+            );
 
-  if (!url) {
-    send(res,"text","⚠️ Failed to generate image.");
-    return done(res,ping);
-  }
+          if (!url) {
+            send(
+              res,
+              "text",
+              "⚠️ Failed to generate image."
+            );
 
-  send(res,"image",url);
+            return done(
+              res,
+              ping
+            );
+          }
 
-  sendDownload(
-    res,
-    "Generated Image Ready",
-    url,
-    "image"
-  );
+          send(
+            res,
+            "image",
+            url
+          );
 
-  return done(res,ping);
-}
+          sendDownload(
+            res,
+            "Generated Image Ready",
+            url,
+            "image"
+          );
 
-        // ==================================
+          return done(
+            res,
+            ping
+          );
+        }
+
+        // ====================================
         // NEWS
-        // ==================================
+        // ====================================
         if (
           tool ===
           "search"
@@ -509,9 +597,9 @@ export const chatStreamController =
           );
         }
 
-        // ==================================
-        // PDF EXPORT
-        // ==================================
+        // ====================================
+        // PDF CREATE
+        // ====================================
         if (
           tool ===
           "pdf"
@@ -535,16 +623,16 @@ export const chatStreamController =
           );
         }
 
-        // ==================================
+        // ====================================
         // NORMAL CHAT
-        // ==================================
+        // ====================================
         const cleanMessages =
           [
             {
               role:
                 "system",
               content:
-                "You are DevU AI. Helpful, smart, premium assistant.",
+                "You are DevU AI, smart premium assistant.",
             },
             ...messages,
           ];
@@ -603,12 +691,7 @@ export const chatStreamController =
               res,
               ping
             );
-          } catch (err) {
-            console.log(
-              "Model failed:",
-              current
-            );
-          }
+          } catch (_) {}
         }
 
         send(

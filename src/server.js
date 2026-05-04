@@ -70,6 +70,7 @@ app.use(express.urlencoded({
 app.use(rateLimiter);
 app.set("trust proxy", 1);
 app.use(express.static("public"));
+app.use("/generated", express.static("public/generated"));
 // ====================================
 // 🟢 HEALTH CHECK ROUTE
 // ====================================

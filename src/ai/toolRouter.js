@@ -2,18 +2,19 @@
 
 /**
  * ==========================================
- * 🔥 DevU AI CREATOR MODE TOOL ROUTER
+ * 🔥 DevU AI CREATOR MODE TOOL ROUTER (FINAL)
  *
- * Auto detects:
+ * Auto Detects:
  * ✅ Camera / Photos
- * ✅ OCR / Scan
- * ✅ Ghibli / Anime Art
- * ✅ Video Edit / Reel
- * ✅ Audio Notes / Transcribe
- * ✅ PDF / DOCX / TXT / CSV
- * ✅ Resume Builder
+ * ✅ OCR / Scan / Receipt / Notes
+ * ✅ Ghibli / Anime / Cartoon
+ * ✅ Video Edit / Reel / Highlight
+ * ✅ Audio / Voice Notes / Transcribe
+ * ✅ PDF / DOCX / TXT / CSV / JSON
+ * ✅ Resume / CV Builder
  * ✅ AI Image Generation
- * ✅ News Search
+ * ✅ PDF Creation
+ * ✅ News / Search
  * ✅ Normal Chat
  * ==========================================
  */
@@ -22,234 +23,244 @@ export function detectTool(
   message = "",
   files = []
 ) {
-  const text = String(
-    message || ""
-  )
+  const text = String(message || "")
     .toLowerCase()
     .trim();
 
-  // ======================================
+  // =====================================================
   // FILE PRIORITY
-  // ======================================
+  // =====================================================
   if (
-    files &&
+    Array.isArray(files) &&
     files.length > 0
   ) {
-    const file =
-      files[0];
+    const file = files[0] || {};
 
-    const mime =
+    const mime = String(
       file.mimeType ||
       file.mimetype ||
-      "";
+      ""
+    ).toLowerCase();
 
     const name = String(
       file.name ||
-        file.originalname ||
-        ""
+      file.originalname ||
+      ""
     ).toLowerCase();
 
-    // ===============================
+    // =================================================
     // IMAGE FILES
-    // ===============================
+    // =================================================
     if (
-      mime.startsWith(
-        "image/"
-      )
+      mime.startsWith("image/") ||
+      name.endsWith(".png") ||
+      name.endsWith(".jpg") ||
+      name.endsWith(".jpeg") ||
+      name.endsWith(".webp")
     ) {
-      // Ghibli / anime
+      // Ghibli / Style Transfer
       if (
-        text.includes(
-          "ghibli"
-        ) ||
-        text.includes(
-          "anime"
-        ) ||
-        text.includes(
-          "cartoon"
-        ) ||
-        text.includes(
-          "pixar"
-        )
+        hasAny(text, [
+          "ghibli",
+          "anime",
+          "cartoon",
+          "pixar",
+          "studio ghibli",
+          "make art",
+          "make this art",
+          "turn into anime",
+          "convert to cartoon"
+        ])
       ) {
         return "ghibli";
       }
 
-      // OCR / scan
+      // OCR / Scan
       if (
-        text.includes(
-          "scan"
-        ) ||
-        text.includes(
-          "ocr"
-        ) ||
-        text.includes(
-          "extract text"
-        ) ||
-        text.includes(
-          "read text"
-        ) ||
-        text.includes(
-          "document"
-        )
+        hasAny(text, [
+          "ocr",
+          "scan",
+          "read text",
+          "extract text",
+          "receipt",
+          "bill",
+          "invoice",
+          "document",
+          "notes",
+          "id card",
+          "license"
+        ])
       ) {
         return "ocr";
       }
 
-      // normal image understanding
+      // Default vision
       return "vision";
     }
 
-    // ===============================
+    // =================================================
     // VIDEO FILES
-    // ===============================
+    // =================================================
     if (
-      mime.startsWith(
-        "video/"
-      )
+      mime.startsWith("video/") ||
+      endsWithAny(name, [
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".webm"
+      ])
     ) {
       return "video";
     }
 
-    // ===============================
+    // =================================================
     // AUDIO FILES
-    // ===============================
+    // =================================================
     if (
-      mime.startsWith(
-        "audio/"
-      )
+      mime.startsWith("audio/") ||
+      endsWithAny(name, [
+        ".mp3",
+        ".wav",
+        ".m4a",
+        ".aac",
+        ".ogg",
+        ".webm"
+      ])
     ) {
       return "audio";
     }
 
-    // ===============================
-    // DOCUMENTS
-    // ===============================
+    // =================================================
+    // DOCUMENT FILES
+    // =================================================
     if (
-      mime.includes(
-        "pdf"
-      ) ||
-      mime.includes(
-        "word"
-      ) ||
-      mime.includes(
-        "document"
-      ) ||
-      mime.includes(
-        "text"
-      ) ||
-      mime.includes(
-        "csv"
-      ) ||
-      mime.includes(
-        "json"
-      ) ||
-      name.endsWith(
-        ".pdf"
-      ) ||
-      name.endsWith(
-        ".docx"
-      ) ||
-      name.endsWith(
-        ".txt"
-      ) ||
-      name.endsWith(
-        ".csv"
-      ) ||
-      name.endsWith(
-        ".json"
-      )
+      mime.includes("pdf") ||
+      mime.includes("word") ||
+      mime.includes("document") ||
+      mime.includes("text") ||
+      mime.includes("csv") ||
+      mime.includes("json") ||
+      mime.includes("excel") ||
+      endsWithAny(name, [
+        ".pdf",
+        ".docx",
+        ".txt",
+        ".csv",
+        ".json",
+        ".md",
+        ".xlsx"
+      ])
     ) {
       return "file";
     }
 
-    // default uploaded file
+    // Fallback uploaded file
     return "file";
   }
 
-  // ======================================
-  // NO FILES (TEXT ONLY)
-  // ======================================
+  // =====================================================
+  // TEXT ONLY MODE
+  // =====================================================
 
-  // ===============================
-  // RESUME / CV MAKER
-  // ===============================
+  // Resume / CV
   if (
-    text.includes(
-      "resume"
-    ) ||
-    text.includes(
-      "cv"
-    ) ||
-    text.includes(
-      "make my resume"
-    )
+    hasAny(text, [
+      "resume",
+      "cv",
+      "make my resume",
+      "create resume",
+      "ats resume"
+    ])
   ) {
     return "resume";
   }
 
-  // ===============================
-  // IMAGE GENERATION
-  // ===============================
+  // Image Generation
   if (
-    text.includes(
-      "generate image"
-    ) ||
-    text.includes(
-      "create image"
-    ) ||
-    text.includes(
-      "draw"
-    ) ||
-    text.includes(
-      "make logo"
-    ) ||
-    text.includes(
-      "make thumbnail"
-    ) ||
-    text.includes(
-      "poster"
-    )
+    hasAny(text, [
+      "generate image",
+      "create image",
+      "draw",
+      "make logo",
+      "thumbnail",
+      "poster",
+      "wallpaper",
+      "ghibli art",
+      "anime art"
+    ])
   ) {
     return "image";
   }
 
-  // ===============================
-  // NEWS
-  // ===============================
+  // PDF Creation
   if (
-    text.includes(
-      "news"
-    ) ||
-    text.includes(
-      "latest"
-    ) ||
-    text.includes(
-      "today news"
-    ) ||
-    text.includes(
-      "market update"
-    )
-  ) {
-    return "search";
-  }
-
-  // ===============================
-  // PDF CREATION
-  // ===============================
-  if (
-    text.includes(
-      "make pdf"
-    ) ||
-    text.includes(
-      "export pdf"
-    )
+    hasAny(text, [
+      "make pdf",
+      "export pdf",
+      "create pdf",
+      "convert to pdf"
+    ])
   ) {
     return "pdf";
   }
 
-  // ===============================
-  // DEFAULT CHAT
-  // ===============================
+  // News / Search
+  if (
+    hasAny(text, [
+      "news",
+      "latest",
+      "today news",
+      "market update",
+      "stock news",
+      "search",
+      "find"
+    ])
+  ) {
+    return "search";
+  }
+
+  // Video requests without upload
+  if (
+    hasAny(text, [
+      "make reel",
+      "edit video",
+      "viral reel",
+      "shorts video"
+    ])
+  ) {
+    return "video";
+  }
+
+  // Audio requests without upload
+  if (
+    hasAny(text, [
+      "transcribe audio",
+      "voice note",
+      "speech to text"
+    ])
+  ) {
+    return "audio";
+  }
+
+  // Default chat
   return "chat";
+}
+
+/**
+ * =====================================================
+ * HELPERS
+ * =====================================================
+ */
+
+function hasAny(text, arr = []) {
+  return arr.some((w) =>
+    text.includes(w)
+  );
+}
+
+function endsWithAny(name, arr = []) {
+  return arr.some((ext) =>
+    name.endsWith(ext)
+  );
 }
