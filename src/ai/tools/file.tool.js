@@ -1,23 +1,11 @@
 // src/ai/tools/file.tool.js
 
-import * as pdf from "pdf-parse";
+import pdf from "pdf-parse";
 import mammoth from "mammoth";
 
 /**
  * ==========================================
  * 🔥 DevU AI FINAL FILE TOOL (Render Safe)
- *
- * Supports:
- * ✅ PDF
- * ✅ DOCX
- * ✅ TXT
- * ✅ CSV
- * ✅ JSON
- * ✅ MD
- * ✅ Resume files
- * ✅ Notes / Reports
- * ✅ Large text cleanup
- * ✅ Render Node v24 safe
  * ==========================================
  */
 
@@ -29,31 +17,17 @@ export async function handleFile(file) {
 
     let text = "";
 
-    const mime =
-      file.mimeType ||
-      file.mimetype ||
-      "";
-
+    const mime = file.mimeType || file.mimetype || "";
     const name = String(
-      file.name ||
-      file.originalname ||
-      "document"
+      file.name || file.originalname || "document"
     ).toLowerCase();
 
     // ======================================
-    // PDF
+    // PDF ✅ FIXED
     // ======================================
-    if (
-      mime.includes("pdf") ||
-      name.endsWith(".pdf")
-    ) {
-      const data =
-        await pdf.default(
-          file.buffer
-        );
-
-      text =
-        data?.text || "";
+    if (mime.includes("pdf") || name.endsWith(".pdf")) {
+      const data = await pdf(file.buffer); // ✅ FIX
+      text = data?.text || "";
     }
 
     // ======================================
@@ -61,25 +35,18 @@ export async function handleFile(file) {
     // ======================================
     else if (
       mime.includes("word") ||
-      mime.includes(
-        "officedocument"
-      ) ||
+      mime.includes("officedocument") ||
       name.endsWith(".docx")
     ) {
-      const data =
-        await mammoth.extractRawText(
-          {
-            buffer:
-              file.buffer,
-          }
-        );
+      const data = await mammoth.extractRawText({
+        buffer: file.buffer,
+      });
 
-      text =
-        data?.value || "";
+      text = data?.value || "";
     }
 
     // ======================================
-    // TXT / CSV / JSON / MD
+    // TEXT FILES
     // ======================================
     else if (
       mime.includes("text") ||
@@ -90,24 +57,18 @@ export async function handleFile(file) {
       name.endsWith(".json") ||
       name.endsWith(".md")
     ) {
-      text =
-        file.buffer.toString(
-          "utf8"
-        );
+      text = file.buffer.toString("utf8");
     }
 
     // ======================================
-    // Unknown file fallback
+    // FALLBACK
     // ======================================
     else {
-      text =
-        file.buffer.toString(
-          "utf8"
-        );
+      text = file.buffer.toString("utf8");
     }
 
     // ======================================
-    // Clean Text
+    // CLEAN TEXT
     // ======================================
     text = String(text)
       .replace(/\0/g, "")
@@ -121,40 +82,24 @@ export async function handleFile(file) {
     }
 
     // ======================================
-    // Limit Size
+    // LIMIT SIZE
     // ======================================
     const preview =
       text.length > 12000
-        ? text.substring(
-            0,
-            12000
-          ) +
-          "\n\n...[truncated]"
+        ? text.substring(0, 12000) + "\n\n...[truncated]"
         : text;
 
     // ======================================
-    // Detect Resume
+    // RESUME DETECTION
     // ======================================
     const isResume =
-      name.includes(
-        "resume"
-      ) ||
-      name.includes(
-        "cv"
-      ) ||
-      preview
-        .toLowerCase()
-        .includes(
-          "experience"
-        ) &&
-      preview
-        .toLowerCase()
-        .includes(
-          "education"
-        );
+      name.includes("resume") ||
+      name.includes("cv") ||
+      (preview.toLowerCase().includes("experience") &&
+        preview.toLowerCase().includes("education"));
 
     // ======================================
-    // Resume Mode
+    // RESUME MODE
     // ======================================
     if (isResume) {
       return `
@@ -178,7 +123,7 @@ ${preview}
     }
 
     // ======================================
-    // Normal File Mode
+    // NORMAL MODE
     // ======================================
     return `
 📄 File Read Successfully
@@ -200,11 +145,7 @@ ${preview}
 • Extract action items
 `;
   } catch (err) {
-    console.error(
-      "❌ File Tool Error:",
-      err.message
-    );
-
+    console.error("❌ File Tool Error:", err.message);
     return "⚠️ Failed to process file.";
   }
 }

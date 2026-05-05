@@ -1,13 +1,12 @@
+// src/ai/tools/audio.tool.js
+
 import fs from "fs";
 import path from "path";
 import os from "os";
 import FormData from "form-data";
 import fetch from "node-fetch";
 
-export async function handleAudio(
-  file,
-  userPrompt = ""
-) {
+export async function handleAudio(file, userPrompt = "") {
   let tempPath = "";
 
   try {
@@ -15,8 +14,7 @@ export async function handleAudio(
       return "⚠️ No audio file found.";
     }
 
-    const apiKey =
-      process.env.GROQ_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     const name =
       file.name ||
@@ -24,29 +22,53 @@ export async function handleAudio(
       "voice_note.mp3";
 
     const ext =
-      path.extname(name) ||
-      ".mp3";
+      path.extname(name) || ".mp3";
 
+    // =========================
+    // TEMP FILE (for API)
+    // =========================
     tempPath = path.join(
       os.tmpdir(),
       `devu_${Date.now()}${ext}`
     );
 
-    fs.writeFileSync(
-      tempPath,
-      file.buffer
+    fs.writeFileSync(tempPath, file.buffer);
+
+    // =========================
+    // SAVE PERMANENT FILE (🔥 IMPORTANT)
+    // =========================
+    const fileName = `audio_${Date.now()}${ext}`;
+
+    const dir = path.join(
+      process.cwd(),
+      "public",
+      "generated"
     );
 
-    if (!apiKey) {
-      return `
-🎤 Audio Uploaded
-
-Speech API key missing.
-`;
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
 
-    const form =
-      new FormData();
+    const finalPath = path.join(dir, fileName);
+
+    fs.writeFileSync(finalPath, file.buffer);
+
+    const fileUrl =
+      `${process.env.PUBLIC_URL}/generated/${fileName}`;
+
+    // =========================
+    // IF NO API → JUST RETURN FILE
+    // =========================
+    if (!apiKey) {
+      return `🎧 Audio Ready
+
+${fileUrl}`;
+    }
+
+    // =========================
+    // TRANSCRIPTION
+    // =========================
+    const form = new FormData();
 
     form.append(
       "file",
@@ -63,85 +85,69 @@ Speech API key missing.
       {
         method: "POST",
         headers: {
-          Authorization:
-            `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: form,
       }
     );
 
     if (!res.ok) {
-      throw new Error(
-        await res.text()
-      );
+      throw new Error(await res.text());
     }
 
-    const data =
-      await res.json();
+    const data = await res.json();
 
     const text =
-      data?.text?.trim() ||
-      "";
+      data?.text?.trim() || "";
+
+    // =========================
+    // RESPONSE LOGIC
+    // =========================
+    const p = userPrompt.toLowerCase();
 
     if (!text) {
-      return `
-🎤 Audio received.
+      return `🎧 Audio Ready
 
-No speech detected clearly.
-`;
+${fileUrl}
+
+⚠️ No speech detected`;
     }
-
-    const p =
-      userPrompt.toLowerCase();
 
     if (
       p.includes("summary") ||
       p.includes("summarize")
     ) {
-      return `
-📝 Audio Summary
+      return `🎧 Audio Ready
 
-${text.substring(0, 2500)}
-`;
+${fileUrl}
+
+📝 Summary:
+${text.substring(0, 2000)}`;
     }
 
-    if (
-      p.includes("translate")
-    ) {
-      return `
-🌍 Audio Transcript
+    if (p.includes("translate")) {
+      return `🎧 Audio Ready
 
-${text}
-`;
+${fileUrl}
+
+🌍 Transcript:
+${text}`;
     }
 
-    return `
-🎤 Audio Transcription Complete
+    return `🎧 Audio Ready
 
-${text}
-`;
+${fileUrl}
+
+📝 Transcript:
+${text}`;
   } catch (err) {
-    console.error(
-      "Audio error:",
-      err.message
-    );
+    console.error("Audio error:", err.message);
 
-    return `
-🎤 Audio uploaded.
-
-Transcription temporarily unavailable.
-`;
+    return "⚠️ Audio processing failed.";
   } finally {
     try {
-      if (
-        tempPath &&
-        fs.existsSync(
-          tempPath
-        )
-      ) {
-        fs.unlinkSync(
-          tempPath
-        );
+      if (tempPath && fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
       }
     } catch {}
   }

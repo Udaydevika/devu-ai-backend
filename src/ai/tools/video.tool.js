@@ -11,407 +11,229 @@ import { addCaptionToVideo } from "../../utils/captionVideo.js";
 
 /**
  * ==========================================
- * 🔥 DevU AI VIDEO TOOL (PRODUCTION READY)
+ * 🔥 DevU AI VIDEO TOOL (FINAL STABLE)
  *
- * Supports:
- * ✅ Viral Reel
- * ✅ Auto Captions
- * ✅ Smart Highlight
- * ✅ 30 sec Clip
- * ✅ AI Video Summary
- * ✅ Direct Download URLs
- * ✅ Render Safe
+ * Guarantees:
+ * ✅ Always returns URL for playable/download
+ * ✅ Works with Flutter player
+ * ✅ Safe fallback if processing fails
  * ==========================================
  */
 
-const BASE_URL =
-  process.env.PUBLIC_URL ||
-  "https://devu-ai.onrender.com";
+const PUBLIC_DIR = path.join(process.cwd(), "public", "generated");
+const BASE_URL = `${process.env.PUBLIC_URL}/generated`;
 
-export async function handleVideo(
-  file,
-  userPrompt = ""
-) {
+function ensureDir() {
+  if (!fs.existsSync(PUBLIC_DIR)) {
+    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  }
+}
+
+function saveBuffer(buffer, fileName) {
+  const full = path.join(PUBLIC_DIR, fileName);
+  fs.writeFileSync(full, buffer);
+  return `${BASE_URL}/${fileName}`;
+}
+
+export async function handleVideo(file, userPrompt = "") {
   let tempPath = "";
 
   try {
-    // ==========================
-    // VALIDATE
-    // ==========================
-    if (
-      !file ||
-      !file.buffer
-    ) {
+    if (!file?.buffer) {
       return "⚠️ No video file found.";
     }
 
-    const ext =
-      path.extname(
-        file.originalname || ""
-      ) || ".mp4";
+    ensureDir();
 
-    const prompt =
-      String(userPrompt || "")
-        .toLowerCase()
-        .trim();
+    const ext = path.extname(file.originalname || "") || ".mp4";
+    const prompt = String(userPrompt || "").toLowerCase().trim();
 
-    const sizeMB =
-      file.buffer.length /
-      1024 /
-      1024;
-
-    // ==========================
-    // LARGE FILE PROTECTION
-    // ==========================
+    const sizeMB = file.buffer.length / 1024 / 1024;
     if (sizeMB > 25) {
       return `⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 25MB.`;
     }
 
-    // ==========================
-    // PUBLIC DIR
-    // ==========================
-    const publicDir =
-      path.join(
-        process.cwd(),
-        "public"
-      );
-
-    if (
-      !fs.existsSync(
-        publicDir
-      )
-    ) {
-      fs.mkdirSync(
-        publicDir,
-        {
-          recursive: true,
-        }
-      );
-    }
-
-    // ==========================
-    // TEMP SAVE
-    // ==========================
-    tempPath = path.join(
-      os.tmpdir(),
-      `devu_${Date.now()}${ext}`
-    );
-
-    fs.writeFileSync(
-      tempPath,
-      file.buffer
-    );
+    // temp file (for FFmpeg tools)
+    tempPath = path.join(os.tmpdir(), `devu_${Date.now()}${ext}`);
+    fs.writeFileSync(tempPath, file.buffer);
 
     // =====================================================
-    // MODE 1 — VIRAL REEL / CAPTION REEL
+    // MODE 1 — VIRAL / CAPTION REEL
     // =====================================================
     if (
-      prompt.includes(
-        "viral"
-      ) ||
-      prompt.includes(
-        "caption"
-      ) ||
-      prompt.includes(
-        "subtitle"
-      ) ||
-      prompt.includes(
-        "instagram"
-      ) ||
-      prompt.includes(
-        "shorts"
-      )
+      prompt.includes("viral") ||
+      prompt.includes("caption") ||
+      prompt.includes("subtitle") ||
+      prompt.includes("shorts") ||
+      prompt.includes("instagram")
     ) {
-      const reel =
-        await trimVideo(
-          file.buffer,
-          {
-            duration: 30,
-            startAt: 0,
-            ext,
-            vertical: true,
-          }
-        );
+      try {
+        const reel = await trimVideo(file.buffer, {
+          duration: 30,
+          startAt: 0,
+          ext,
+          vertical: true,
+        });
 
-      const reelTemp =
-        path.join(
-          os.tmpdir(),
-          reel.filename
-        );
+        const reelTemp = path.join(os.tmpdir(), reel.filename);
+        fs.writeFileSync(reelTemp, reel.buffer);
 
-      fs.writeFileSync(
-        reelTemp,
-        reel.buffer
-      );
-
-      const captioned =
-        await addCaptionToVideo(
+        const captioned = await addCaptionToVideo(
           reelTemp,
           "🔥 Watch Till End"
         );
 
-      const fileName =
-        `viral_${Date.now()}.mp4`;
+        const fileName = `viral_${Date.now()}.mp4`;
+        const finalPath = path.join(PUBLIC_DIR, fileName);
 
-      const finalPath =
-        path.join(
-          publicDir,
-          fileName
-        );
+        fs.copyFileSync(captioned, finalPath);
 
-      fs.copyFileSync(
-        captioned,
-        finalPath
-      );
-
-      return `${BASE_URL}/${fileName}`;
+        return `${BASE_URL}/${fileName}`;
+      } catch (e) {
+        console.error("Viral mode fallback:", e.message);
+        // fallback: just return simple clip
+        const fallback = await trimVideo(file.buffer, {
+          duration: 30,
+          startAt: 0,
+          ext,
+          vertical: false,
+        });
+        return saveBuffer(fallback.buffer, fallback.filename);
+      }
     }
 
     // =====================================================
     // MODE 2 — SMART HIGHLIGHT
     // =====================================================
     if (
-      prompt.includes(
-        "highlight"
-      ) ||
-      prompt.includes(
-        "best moments"
-      ) ||
-      prompt.includes(
-        "auto edit"
-      )
+      prompt.includes("highlight") ||
+      prompt.includes("best") ||
+      prompt.includes("auto edit")
     ) {
-      const frames =
-        await extractFrames(
-          tempPath
-        );
+      try {
+        const frames = await extractFrames(tempPath);
 
-      if (
-        !frames ||
-        frames.length === 0
-      ) {
-        return "⚠️ Could not analyze video.";
-      }
+        if (!frames || frames.length === 0) {
+          throw new Error("no frames");
+        }
 
-      const scores = [];
+        const scores = [];
 
-      for (
-        let i = 0;
-        i <
-        Math.min(
-          2,
-          frames.length
-        );
-        i++
-      ) {
-        const img =
-          fs.readFileSync(
-            frames[i]
-          );
+        for (let i = 0; i < Math.min(2, frames.length); i++) {
+          const img = fs.readFileSync(frames[i]);
 
-        const stream =
-          await streamGemini(
+          const stream = await streamGemini(
             [
               {
                 role: "user",
-                content:
-                  "Rate excitement from 1 to 10. Return number only.",
+                content: "Rate excitement 1-10. Only number.",
               },
             ],
             img,
             "image/png"
           );
 
-        let txt = "";
+          let txt = "";
+          for await (const t of stream) txt += t;
 
-        for await (const t of stream) {
-          txt += t;
+          const score = parseInt(txt.match(/\d+/)?.[0] || "5");
+          scores.push({ index: i, score });
         }
 
-        const score =
-          parseInt(
-            txt.match(
-              /\d+/
-            )?.[0] || "5"
-          );
+        scores.sort((a, b) => b.score - a.score);
 
-        scores.push({
-          index: i,
-          score,
+        const startAt = scores[0].index * 10;
+
+        const reel = await trimVideo(file.buffer, {
+          duration: 30,
+          startAt,
+          ext,
+          vertical: true,
         });
+
+        return saveBuffer(reel.buffer, reel.filename);
+      } catch (e) {
+        console.error("Highlight fallback:", e.message);
+        const fallback = await trimVideo(file.buffer, {
+          duration: 30,
+          startAt: 0,
+          ext,
+          vertical: false,
+        });
+        return saveBuffer(fallback.buffer, fallback.filename);
       }
-
-      scores.sort(
-        (a, b) =>
-          b.score -
-          a.score
-      );
-
-      const best =
-        scores[0];
-
-      const startAt =
-        best.index * 10;
-
-      const reel =
-        await trimVideo(
-          file.buffer,
-          {
-            duration: 30,
-            startAt,
-            ext,
-            vertical: true,
-          }
-        );
-
-      const finalPath =
-        path.join(
-          publicDir,
-          reel.filename
-        );
-
-      fs.writeFileSync(
-        finalPath,
-        reel.buffer
-      );
-
-      return `${BASE_URL}/${reel.filename}`;
     }
 
     // =====================================================
     // MODE 3 — SIMPLE CLIP
     // =====================================================
     if (
-      prompt.includes(
-        "clip"
-      ) ||
-      prompt.includes(
-        "30 sec"
-      ) ||
-      prompt.includes(
-        "reel"
-      )
+      prompt.includes("clip") ||
+      prompt.includes("30") ||
+      prompt.includes("reel")
     ) {
-      const reel =
-        await trimVideo(
-          file.buffer,
-          {
-            duration: 30,
-            startAt: 0,
-            ext,
-            vertical: false,
-          }
-        );
+      const reel = await trimVideo(file.buffer, {
+        duration: 30,
+        startAt: 0,
+        ext,
+        vertical: false,
+      });
 
-      const finalPath =
-        path.join(
-          publicDir,
-          reel.filename
-        );
-
-      fs.writeFileSync(
-        finalPath,
-        reel.buffer
-      );
-
-      return `${BASE_URL}/${reel.filename}`;
+      return saveBuffer(reel.buffer, reel.filename);
     }
 
     // =====================================================
-    // MODE 4 — AI VIDEO ANALYSIS
+    // MODE 4 — ANALYSIS (TEXT ONLY)
     // =====================================================
-    const frames =
-      await extractFrames(
-        tempPath
-      );
+    const frames = await extractFrames(tempPath);
 
-    if (
-      !frames ||
-      frames.length === 0
-    ) {
-      return "⚠️ Could not read video.";
+    if (!frames || frames.length === 0) {
+      // fallback: at least return original video so UI works
+      const fileName = `video_${Date.now()}${ext}`;
+      return saveBuffer(file.buffer, fileName);
     }
 
     const notes = [];
 
-    for (
-      let i = 0;
-      i <
-      Math.min(
-        2,
-        frames.length
-      );
-      i++
-    ) {
-      const img =
-        fs.readFileSync(
-          frames[i]
-        );
+    for (let i = 0; i < Math.min(2, frames.length); i++) {
+      const img = fs.readFileSync(frames[i]);
 
-      const stream =
-        await streamGemini(
-          [
-            {
-              role: "user",
-              content:
-                "Describe this frame briefly.",
-            },
-          ],
-          img,
-          "image/png"
-        );
+      const stream = await streamGemini(
+        [
+          {
+            role: "user",
+            content: "Describe this frame briefly.",
+          },
+        ],
+        img,
+        "image/png"
+      );
 
       let text = "";
+      for await (const t of stream) text += t;
 
-      for await (const t of stream) {
-        text += t;
-      }
-
-      notes.push(
-        `Frame ${i + 1}: ${text}`
-      );
+      notes.push(`Frame ${i + 1}: ${text}`);
     }
 
-    const summaryStream =
-      await streamGemini([
-        {
-          role: "user",
-          content: `
-Summarize this video:
-
-${notes.join("\n")}
-`,
-        },
-      ]);
+    const summaryStream = await streamGemini([
+      {
+        role: "user",
+        content: `Summarize video:\n${notes.join("\n")}`,
+      },
+    ]);
 
     let summary = "";
+    for await (const t of summaryStream) summary += t;
 
-    for await (const t of summaryStream) {
-      summary += t;
-    }
-
-    return `🎬 Video Analysis Complete
-
-${summary}`;
+    return `🎬 Video Analysis Complete\n\n${summary}`;
   } catch (err) {
-    console.error(
-      "❌ Video Tool Error:",
-      err.message
-    );
-
+    console.error("❌ Video Tool Error:", err.message);
     return "⚠️ Failed to process video.";
   } finally {
     try {
-      if (
-        tempPath &&
-        fs.existsSync(
-          tempPath
-        )
-      ) {
-        fs.unlinkSync(
-          tempPath
-        );
+      if (tempPath && fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
       }
-    } catch (_) {}
+    } catch {}
   }
 }

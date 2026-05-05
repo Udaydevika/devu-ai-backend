@@ -2,146 +2,121 @@
 
 /**
  * ==========================================
- * 🔥 DevU AI CREATOR MODE TOOL ROUTER (FINAL)
+ * 🔥 DevU AI CREATOR MODE PRO TOOL ROUTER
  *
  * Auto Detects:
- * ✅ Camera / Photos
- * ✅ OCR / Scan / Receipt / Notes
- * ✅ Ghibli / Anime / Cartoon
- * ✅ Video Edit / Reel / Highlight
- * ✅ Audio / Voice Notes / Transcribe
- * ✅ PDF / DOCX / TXT / CSV / JSON
- * ✅ Resume / CV Builder
- * ✅ AI Image Generation
- * ✅ PDF Creation
+ * ✅ Image Generation / Variations / Edit / Animate
+ * ✅ OCR / Vision
+ * ✅ Video Processing
+ * ✅ Audio / Voice / Song
+ * ✅ Documents (PDF/DOCX/TXT)
+ * ✅ Resume Builder
+ * ✅ PDF Generator
  * ✅ News / Search
- * ✅ Normal Chat
+ * ✅ Chat fallback
  * ==========================================
  */
 
-export function detectTool(
-  message = "",
-  files = []
-) {
-  const text = String(message || "")
-    .toLowerCase()
-    .trim();
+export function detectTool(message = "", files = []) {
+  const text = String(message || "").toLowerCase().trim();
 
   // =====================================================
-  // FILE PRIORITY
+  // FILE MODE (HIGH PRIORITY)
   // =====================================================
-  if (
-    Array.isArray(files) &&
-    files.length > 0
-  ) {
+  if (Array.isArray(files) && files.length > 0) {
     const file = files[0] || {};
 
-    const mime = String(
-      file.mimeType ||
-      file.mimetype ||
-      ""
-    ).toLowerCase();
+    const mime = String(file.mimeType || file.mimetype || "").toLowerCase();
+    const name = String(file.name || file.originalname || "").toLowerCase();
 
-    const name = String(
-      file.name ||
-      file.originalname ||
-      ""
-    ).toLowerCase();
-
-    // =================================================
-    // IMAGE FILES
-    // =================================================
+    // ================= IMAGE FILE =================
     if (
       mime.startsWith("image/") ||
-      name.endsWith(".png") ||
-      name.endsWith(".jpg") ||
-      name.endsWith(".jpeg") ||
-      name.endsWith(".webp")
+      endsWithAny(name, [".png", ".jpg", ".jpeg", ".webp"])
     ) {
-      // Ghibli / Style Transfer
+      // 🎨 Variations
+      if (hasAny(text, ["variation", "variations"])) {
+        return "image_variation";
+      }
+
+      // 🖼️ Edit image
+      if (
+        hasAny(text, [
+          "edit",
+          "remove background",
+          "change background",
+          "enhance",
+          "fix image",
+        ])
+      ) {
+        return "image_edit";
+      }
+
+      // 🎬 Animate image
+      if (
+        hasAny(text, [
+          "animate",
+          "image to video",
+          "make video",
+          "convert to video",
+        ])
+      ) {
+        return "image_video";
+      }
+
+      // 🎨 Ghibli style
       if (
         hasAny(text, [
           "ghibli",
           "anime",
           "cartoon",
           "pixar",
-          "studio ghibli",
-          "make art",
-          "make this art",
           "turn into anime",
-          "convert to cartoon"
         ])
       ) {
         return "ghibli";
       }
 
-      // OCR / Scan
+      // 📄 OCR
       if (
         hasAny(text, [
           "ocr",
           "scan",
-          "read text",
           "extract text",
-          "receipt",
-          "bill",
-          "invoice",
+          "read text",
           "document",
-          "notes",
-          "id card",
-          "license"
+          "receipt",
         ])
       ) {
         return "ocr";
       }
 
-      // Default vision
       return "vision";
     }
 
-    // =================================================
-    // VIDEO FILES
-    // =================================================
+    // ================= VIDEO FILE =================
     if (
       mime.startsWith("video/") ||
-      endsWithAny(name, [
-        ".mp4",
-        ".mov",
-        ".avi",
-        ".mkv",
-        ".webm"
-      ])
+      endsWithAny(name, [".mp4", ".mov", ".avi", ".mkv", ".webm"])
     ) {
       return "video";
     }
 
-    // =================================================
-    // AUDIO FILES
-    // =================================================
+    // ================= AUDIO FILE =================
     if (
       mime.startsWith("audio/") ||
-      endsWithAny(name, [
-        ".mp3",
-        ".wav",
-        ".m4a",
-        ".aac",
-        ".ogg",
-        ".webm"
-      ])
+      endsWithAny(name, [".mp3", ".wav", ".m4a", ".aac", ".ogg"])
     ) {
       return "audio";
     }
 
-    // =================================================
-    // DOCUMENT FILES
-    // =================================================
+    // ================= DOCUMENT FILE =================
     if (
       mime.includes("pdf") ||
       mime.includes("word") ||
-      mime.includes("document") ||
       mime.includes("text") ||
       mime.includes("csv") ||
       mime.includes("json") ||
-      mime.includes("excel") ||
       endsWithAny(name, [
         ".pdf",
         ".docx",
@@ -149,118 +124,145 @@ export function detectTool(
         ".csv",
         ".json",
         ".md",
-        ".xlsx"
       ])
     ) {
       return "file";
     }
 
-    // Fallback uploaded file
     return "file";
   }
 
   // =====================================================
-  // TEXT ONLY MODE
+  // TEXT MODE
   // =====================================================
 
-  // Resume / CV
+  // 🎨 Image Variations
   if (
     hasAny(text, [
-      "resume",
-      "cv",
-      "make my resume",
-      "create resume",
-      "ats resume"
+      "variations",
+      "multiple images",
+      "different versions",
+      "3 versions",
     ])
   ) {
-    return "resume";
+    return "image_variation";
   }
 
-  // Image Generation
+  // 🖼️ Image Edit
+  if (
+    hasAny(text, [
+      "edit image",
+      "remove background",
+      "change background",
+      "enhance image",
+      "fix image",
+    ])
+  ) {
+    return "image_edit";
+  }
+
+  // 🎬 Image → Video
+  if (
+    hasAny(text, [
+      "animate image",
+      "image to video",
+      "make video from image",
+    ])
+  ) {
+    return "image_video";
+  }
+
+  // 🎨 Image Generation
   if (
     hasAny(text, [
       "generate image",
       "create image",
       "draw",
-      "make logo",
-      "thumbnail",
+      "logo",
       "poster",
+      "thumbnail",
       "wallpaper",
-      "ghibli art",
-      "anime art"
+      "ghibli",
+      "anime art",
     ])
   ) {
     return "image";
   }
 
-  // PDF Creation
+  // 🎧 Audio / Song
   if (
     hasAny(text, [
-      "make pdf",
-      "export pdf",
-      "create pdf",
-      "convert to pdf"
-    ])
-  ) {
-    return "pdf";
-  }
-
-  // News / Search
-  if (
-    hasAny(text, [
-      "news",
-      "latest",
-      "today news",
-      "market update",
-      "stock news",
-      "search",
-      "find"
-    ])
-  ) {
-    return "search";
-  }
-
-  // Video requests without upload
-  if (
-    hasAny(text, [
-      "make reel",
-      "edit video",
-      "viral reel",
-      "shorts video"
-    ])
-  ) {
-    return "video";
-  }
-
-  // Audio requests without upload
-  if (
-    hasAny(text, [
-      "transcribe audio",
+      "song",
+      "music",
+      "mp3",
+      "play song",
+      "download song",
       "voice note",
-      "speech to text"
+      "speech to text",
     ])
   ) {
     return "audio";
   }
 
-  // Default chat
+  // 🎬 Video
+  if (
+    hasAny(text, [
+      "edit video",
+      "make reel",
+      "shorts",
+      "highlight video",
+    ])
+  ) {
+    return "video";
+  }
+
+  // 📄 Resume
+  if (
+    hasAny(text, [
+      "resume",
+      "cv",
+      "make resume",
+      "ats resume",
+    ])
+  ) {
+    return "resume";
+  }
+
+  // 📄 PDF
+  if (
+    hasAny(text, [
+      "make pdf",
+      "export pdf",
+      "convert to pdf",
+    ])
+  ) {
+    return "pdf";
+  }
+
+  // 🔎 Search
+  if (
+    hasAny(text, [
+      "news",
+      "latest",
+      "search",
+      "find",
+      "market update",
+    ])
+  ) {
+    return "search";
+  }
+
   return "chat";
 }
 
-/**
- * =====================================================
- * HELPERS
- * =====================================================
- */
+// =====================================================
+// HELPERS
+// =====================================================
 
 function hasAny(text, arr = []) {
-  return arr.some((w) =>
-    text.includes(w)
-  );
+  return arr.some((w) => text.includes(w));
 }
 
 function endsWithAny(name, arr = []) {
-  return arr.some((ext) =>
-    name.endsWith(ext)
-  );
+  return arr.some((ext) => name.endsWith(ext));
 }
