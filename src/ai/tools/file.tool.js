@@ -1,11 +1,13 @@
 // src/ai/tools/file.tool.js
 
-import pdf from "pdf-parse";
+import pkg from "pdf-parse"; // ✅ FIXED (ESM safe)
+const pdf = pkg.default || pkg;
+
 import mammoth from "mammoth";
 
 /**
  * ==========================================
- * 🔥 DevU AI FINAL FILE TOOL (Render Safe)
+ * 🔥 DevU AI FINAL FILE TOOL (RENDER SAFE)
  * ==========================================
  */
 
@@ -23,10 +25,10 @@ export async function handleFile(file) {
     ).toLowerCase();
 
     // ======================================
-    // PDF ✅ FIXED
+    // PDF ✅ FULL FIX
     // ======================================
     if (mime.includes("pdf") || name.endsWith(".pdf")) {
-      const data = await pdf(file.buffer); // ✅ FIX
+      const data = await pdf(file.buffer);
       text = data?.text || "";
     }
 
