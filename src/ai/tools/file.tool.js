@@ -1,7 +1,10 @@
 // src/ai/tools/file.tool.js
 
-import pkg from "pdf-parse"; // ✅ FIXED (ESM safe)
-const pdf = pkg.default || pkg;
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
+// ✅ ONLY WORKING WAY
+const pdf = require("pdf-parse");
 
 import mammoth from "mammoth";
 
