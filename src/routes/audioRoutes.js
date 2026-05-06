@@ -3,7 +3,7 @@ import multer from "multer";
 
 import {
   transcribeAudioController,
-} from "../controllers/audio.controller.js";
+} from "../controllers/audioController.js";
 
 const router = express.Router();
 
