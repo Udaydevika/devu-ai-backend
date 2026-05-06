@@ -73,10 +73,22 @@ function startSSE(res) {
 }
 
 function getLastText(messages = []) {
+  const last =
+    messages[messages.length - 1];
+
+  if (!last) return "";
+
+  // Flutter sends array content
+  if (Array.isArray(last.content)) {
+    const txt = last.content.find(
+      (p) => p.type === "text"
+    );
+
+    return txt?.text?.trim() || "";
+  }
+
   return String(
-    messages[
-      messages.length - 1
-    ]?.content || ""
+    last.content || ""
   ).trim();
 }
 
@@ -338,8 +350,10 @@ export const chatStreamController = [
         // ====================================
 
         if (
-          file.mimeType?.startsWith("image/")
-        ) {
+  file &&
+  file.mimeType &&
+  file.mimeType.startsWith("image/")
+) {
 
           // 🎨 GHIBLI IMAGE GENERATION
           if (
