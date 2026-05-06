@@ -2,14 +2,17 @@ import { handleAudio } from "../ai/tools/audio.tool.js";
 
 /**
  * ==========================================
- * 🔥 DevU AI AUDIO CONTROLLER
+ * 🔥 DEVU AI AUDIO CONTROLLER
  * ==========================================
  */
 
-export const handleAudioUpload = async (req, res) => {
+export async function transcribeAudioController(req, res) {
   try {
     const file = req.file;
 
+    // =========================
+    // VALIDATION
+    // =========================
     if (!file) {
       return res.status(400).json({
         success: false,
@@ -17,29 +20,45 @@ export const handleAudioUpload = async (req, res) => {
       });
     }
 
-    const userPrompt = req.body?.prompt || "";
+    const userPrompt =
+      req.body?.prompt || "";
 
-    // ✅ REAL AUDIO TOOL
-    const result = await handleAudio(
-      {
-        buffer: file.buffer,
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-      },
-      userPrompt
-    );
+    // =========================
+    // AUDIO PROCESSING
+    // =========================
+    const result =
+      await handleAudio(
+        {
+          buffer: file.buffer,
+          originalname:
+            file.originalname,
+          mimetype:
+            file.mimetype,
+        },
+        userPrompt
+      );
 
+    // =========================
+    // RESPONSE
+    // =========================
     return res.json({
       success: true,
-      result,
+      text:
+        result ||
+        "Audio processed successfully",
+      usedModel: "audio-tool",
     });
 
   } catch (err) {
-    console.error("❌ Audio Controller:", err.message);
+    console.error(
+      "❌ AUDIO CONTROLLER:",
+      err
+    );
 
     return res.status(500).json({
       success: false,
-      error: "Audio processing failed",
+      error:
+        "Audio processing failed",
     });
   }
-};
+}
