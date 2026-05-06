@@ -22,6 +22,8 @@ import { generateImage } from "../ai/tools/image.tool.js";
 import { getLiveNews } from "../ai/tools/news.tool.js";
 import { handleFile } from "../ai/tools/file.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
+import { handleAudio }
+from "../ai/tools/audio.tool.js";
 
 /**
  * ======================================
@@ -147,6 +149,27 @@ if (
 
     const file = files[0];
 
+    // 🎨 GHIBLI IMAGE
+if (
+  lower.includes("ghibli")
+) {
+
+  const out =
+    await generateImage(
+      `Studio Ghibli style, ${lastText}`
+    );
+
+  return res.json({
+    type: "image",
+    image:
+      out?.url || "",
+    text:
+      "Ghibli image created",
+    usedModel:
+      "image-tool",
+  });
+}
+
     // =====================================
     // OCR MODE
     // =====================================
@@ -233,6 +256,25 @@ Explain:
     if (files.length > 0) {
       const file = files[0];
 
+      // 🎧 AUDIO
+if (
+  file.mimetype?.startsWith("audio/")
+) {
+
+  const result =
+    await handleAudio(
+      file,
+      lastText
+    );
+
+  return res.json({
+    text:
+      result?.transcript ||
+      result?.text ||
+      "Audio processed.",
+    usedModel: "audio-tool",
+  });
+}
       // Skip image because already handled above
       if (!file.mimetype?.startsWith("image/")) {
 
@@ -278,8 +320,9 @@ Explain:
             await handleVideo(file);
 
           return res.json({
-            text: result,
-            usedModel: "video-tool",
+           text:
+  result?.text ||
+  "Video analyzed",
           });
         }
       }

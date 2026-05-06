@@ -20,7 +20,6 @@ import { createPDF } from "../ai/tools/pdf.tool.js";
 import { generateResume } from "../ai/tools/resume.tool.js";
 
 import { editImage } from "../ai/tools/image.edit.tool.js";
-import { imageToVideo } from "../ai/tools/image.video.tool.js";
 
 // ==========================================
 // SSE HELPERS
@@ -155,286 +154,227 @@ export const chatStreamController = [
       );
 
       // ======================================
-      // FILE MODE
-      // ======================================
+// FILE MODE
+// ======================================
 
-      if (file) {
-        // ====================================
-        // 🎨 GHIBLI
-        // ====================================
+if (file) {
 
-        if (tool === "ghibli") {
-          const out =
-            await generateImage(
-              `Studio Ghibli style, ${prompt}`
-            );
+  const mime =
+    file.mimeType || "";
 
-          if (
-            out?.type ===
-            "image"
-          ) {
-            send(
-              res,
-              "image",
-              out.url
-            );
+  // ====================================
+  // 🖼 IMAGE / CAMERA AI
+  // ====================================
 
-            sendDownload(
-              res,
-              "Ghibli Art",
-              out.url,
-              "image"
-            );
-          } else {
-            send(
-              res,
-              "text",
-              out?.text ||
-                "Image failed"
-            );
-          }
+  if (
+    mime.startsWith("image/")
+  ) {
 
-          return done(
-            res,
-            ping
-          );
-        }
+    // 🎨 GHIBLI
+    if (
+      prompt
+        .toLowerCase()
+        .includes("ghibli")
+    ) {
 
-        // ====================================
-        // 📄 OCR
-        // ====================================
+      const out =
+        await generateImage(
+          `Studio Ghibli style, ${prompt}`
+        );
 
-        if (tool === "ocr") {
-          const out =
-            await handleOCR(
-              file,
-              prompt
-            );
+      if (
+        out?.type === "image"
+      ) {
 
-          send(
-            res,
-            "text",
-            out
-          );
-
-          return done(
-            res,
-            ping
-          );
-        }
-
-        // ====================================
-        // 🎧 AUDIO
-        // ====================================
-
-        if (tool === "audio") {
-          const out =
-            await handleAudio(
-              file,
-              prompt
-            );
-
-          if (
-            out?.type ===
-            "audio"
-          ) {
-            send(
-              res,
-              "audio",
-              out.url
-            );
-
-            sendDownload(
-              res,
-              "Audio",
-              out.url,
-              "audio"
-            );
-
-            if (
-              out.transcript
-            ) {
-              send(
-                res,
-                "text",
-                out.transcript
-              );
-            }
-          } else {
-            send(
-              res,
-              "text",
-              out?.text
-            );
-          }
-
-          return done(
-            res,
-            ping
-          );
-        }
-
-        // ====================================
-        // 🎬 VIDEO
-        // ====================================
-
-        if (tool === "video") {
-          const out =
-            await handleVideo(
-              file,
-              prompt
-            );
-
-          if (
-            out?.type ===
-            "video"
-          ) {
-            send(
-              res,
-              "video",
-              out.url
-            );
-
-            sendDownload(
-              res,
-              "Video",
-              out.url,
-              "video"
-            );
-          } else {
-            send(
-              res,
-              "text",
-              out?.text
-            );
-          }
-
-          return done(
-            res,
-            ping
-          );
-        }
-
-        // ====================================
-        // 📄 FILE
-        // ====================================
-
-        const out =
-          await handleFile(file);
-
-        if (
-          out?.type ===
-          "file"
-        ) {
-          send(
-            res,
-            "file",
-            out.text
-          );
-        } else {
-          send(
-            res,
-            "text",
-            out?.text
-          );
-        }
-
-        return done(
+        send(
           res,
-          ping
+          "image",
+          out.url
+        );
+
+        sendDownload(
+          res,
+          "Ghibli Art",
+          out.url,
+          "image"
+        );
+
+      } else {
+
+        send(
+          res,
+          "text",
+          out?.text ||
+          "⚠️ Failed to generate image"
         );
       }
 
-              // ====================================
-        // 📸 CAMERA / IMAGE ANALYSIS
+      return done(
+        res,
+        ping
+      );
+    }
+
+    // 👁️ OCR + IMAGE ANALYSIS
+
+    const result =
+      await handleOCR(
+        file,
+        prompt
+      );
+
+    send(
+      res,
+      "text",
+      result
+    );
+
+    return done(
+      res,
+      ping
+    );
+  }
+       
         // ====================================
+  // 🎧 AUDIO AI
+  // ====================================
 
-        if (
-  file &&
-  file.mimeType &&
-  file.mimeType.startsWith("image/")
-) {
+  if (
+    mime.startsWith("audio/")
+  ) {
 
-          // 🎨 GHIBLI IMAGE GENERATION
-          if (
-            prompt
-              .toLowerCase()
-              .includes("ghibli")
-          ) {
+    const out =
+      await handleAudio(
+        file,
+        prompt
+      );
 
-            const out =
-              await generateImage(
-                `Studio Ghibli style, ${prompt}`
-              );
+    if (
+      out?.type ===
+      "audio"
+    ) {
 
-            if (
-              out?.type === "image"
-            ) {
-              send(
-                res,
-                "image",
-                out.url
-              );
+      send(
+        res,
+        "audio",
+        out.url
+      );
 
-              sendDownload(
-                res,
-                "Ghibli Art",
-                out.url,
-                "image"
-              );
-            } else {
-              send(
-                res,
-                "text",
-                out?.text ||
-                  "⚠️ Failed to generate image"
-              );
-            }
+      sendDownload(
+        res,
+        "Audio",
+        out.url,
+        "audio"
+      );
 
-            return done(
-              res,
-              ping
-            );
-          }
+      if (
+        out.transcript
+      ) {
 
-          // ==================================
-          // 👁️ NORMAL IMAGE ANALYSIS
-          // ==================================
+        send(
+          res,
+          "text",
+          out.transcript
+        );
+      }
 
-          const ask =
-            prompt?.trim() ||
-            "Analyze this image clearly and explain all important details.";
+    } else {
 
-          const stream =
-            await streamGemini(
-              [
-                {
-                  role: "user",
-                  content: ask,
-                },
-              ],
-              file.buffer,
-              file.mimeType
-            );
+      send(
+        res,
+        "text",
+        out?.text ||
+        "⚠️ Audio processing failed."
+      );
+    }
 
-          let output = "";
+    return done(
+      res,
+      ping
+    );
+  }
 
-          for await (const t of stream) {
-            output += t;
-          }
 
-          send(
-            res,
-            "text",
-            output ||
-              "⚠️ Could not analyze image."
-          );
+        // ====================================
+  // 🎬 VIDEO AI
+  // ====================================
 
-          return done(
-            res,
-            ping
-          );
-        }
+  if (
+    mime.startsWith("video/")
+  ) {
+
+    const out =
+      await handleVideo(
+        file,
+        prompt
+      );
+
+    if (
+      out?.type ===
+      "video"
+    ) {
+
+      send(
+        res,
+        "video",
+        out.url
+      );
+
+      sendDownload(
+        res,
+        "Video",
+        out.url,
+        "video"
+      );
+
+    } else {
+
+      send(
+        res,
+        "text",
+        out?.text ||
+        "⚠️ Video processing failed."
+      );
+    }
+
+    return done(
+      res,
+      ping
+    );
+  }
+
+ 
+
+       // ====================================
+  // 📄 PDF / DOCUMENT AI
+  // ====================================
+
+  if (
+    mime.includes("pdf") ||
+    mime.includes("document") ||
+    mime.includes("text") ||
+    mime.includes("sheet")
+  ) {
+
+    const out =
+      await handleFile(
+        file,
+        prompt
+      );
+
+    send(
+      res,
+      "text",
+      out?.text ||
+      "⚠️ Failed to process document."
+    );
+
+    return done(
+      res,
+      ping
+    );
+  }
+
 
       // ====================================
       // 🎨 IMAGE
@@ -526,66 +466,28 @@ export const chatStreamController = [
         );
       }
 
-      // ====================================
-      // 🎬 IMAGE TO VIDEO
-      // ====================================
 
-      if (
-        tool ===
-        "image_video"
-      ) {
-        const img =
-          await generateImage(
-            prompt
-          );
+    // ====================================
+// 🎬 IMAGE TO VIDEO
+// ====================================
 
-        if (
-          img?.type !==
-          "image"
-        ) {
-          send(
-            res,
-            "text",
-            "⚠️ Failed to create image."
-          );
+if (
+  tool ===
+  "image_video"
+) {
 
-          return done(
-            res,
-            ping
-          );
-        }
+  send(
+    res,
+    "text",
+    "⚠️ Image to video temporarily disabled."
+  );
 
-        const vid =
-          await imageToVideo(
-            img.url
-          );
-
-        if (vid) {
-          send(
-            res,
-            "video",
-            vid
-          );
-
-          sendDownload(
-            res,
-            "Animated Video",
-            vid,
-            "video"
-          );
-        } else {
-          send(
-            res,
-            "text",
-            "⚠️ Video creation failed."
-          );
-        }
-
-        return done(
-          res,
-          ping
-        );
-      }
+  return done(
+    res,
+    ping
+  );
+}
+        
 
       // ====================================
       // 📄 RESUME
@@ -656,33 +558,31 @@ export const chatStreamController = [
         );
       }
 
-      // ======================================
-      // 💬 NORMAL CHAT
-      // ======================================
-
+            // ================= CHAT =================
       const stream =
-        await streamGroq(
-          messages
-        );
+        await streamGroq(messages);
 
       for await (const t of stream) {
-        send(
-          res,
-          "text",
-          t
-        );
+
+        if (t) {
+
+          send(
+            res,
+            "text",
+            t.toString()
+          );
+        }
       }
 
       return done(
-        res,
-        ping
-      );
+  res,
+  ping
+);
+}
 
     } catch (err) {
-      console.error(
-        "❌ Stream Controller:",
-        err
-      );
+
+      console.error(err);
 
       send(
         res,
@@ -696,4 +596,5 @@ export const chatStreamController = [
       );
     }
   },
+  
 ];

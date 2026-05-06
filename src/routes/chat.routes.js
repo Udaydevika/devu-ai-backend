@@ -33,6 +33,9 @@ router.post(
   "/chat",
   ensureUser,
   freeChatLimiter,
+
+   upload.array("files", 5),
+   
   chatController
 );
 
