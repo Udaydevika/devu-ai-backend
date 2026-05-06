@@ -1,10 +1,13 @@
 import express from "express";
-import { upload } from "../middlewares/upload.js";
 import multer from "multer";
-import { handleAudioUpload } from "../controllers/audioController.js";
+
+import {
+  transcribeAudioController,
+} from "../controllers/audio.controller.js";
 
 const router = express.Router();
 
+// ✅ SINGLE upload declaration ONLY
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -12,10 +15,11 @@ const upload = multer({
   },
 });
 
+// ✅ AUDIO ROUTE
 router.post(
-  "/audio/upload",
+  "/transcribe",
   upload.single("audio"),
-  handleAudioUpload
+  transcribeAudioController
 );
 
 export default router;
