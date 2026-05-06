@@ -6,15 +6,39 @@ import os from "os";
 import FormData from "form-data";
 import fetch from "node-fetch";
 
-export async function handleAudio(file, userPrompt = "") {
+/**
+ * ==========================================
+ * 🔥 DevU AI FINAL AUDIO TOOL
+ *
+ * Features:
+ * ✅ Audio upload
+ * ✅ Permanent save
+ * ✅ Groq Whisper transcription
+ * ✅ Transcript support
+ * ✅ Flutter audio player compatible
+ * ✅ Structured return format
+ * ==========================================
+ */
+
+export async function handleAudio(
+  file,
+  userPrompt = ""
+) {
   let tempPath = "";
 
   try {
+    // ======================================
+    // VALIDATE
+    // ======================================
     if (!file?.buffer) {
-      return "⚠️ No audio file found.";
+      return {
+        type: "text",
+        text: "⚠️ No audio file found.",
+      };
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey =
+      process.env.GROQ_API_KEY;
 
     const name =
       file.name ||
@@ -24,20 +48,24 @@ export async function handleAudio(file, userPrompt = "") {
     const ext =
       path.extname(name) || ".mp3";
 
-    // =========================
-    // TEMP FILE (for API)
-    // =========================
+    // ======================================
+    // TEMP FILE (FOR WHISPER API)
+    // ======================================
     tempPath = path.join(
       os.tmpdir(),
       `devu_${Date.now()}${ext}`
     );
 
-    fs.writeFileSync(tempPath, file.buffer);
+    fs.writeFileSync(
+      tempPath,
+      file.buffer
+    );
 
-    // =========================
-    // SAVE PERMANENT FILE (🔥 IMPORTANT)
-    // =========================
-    const fileName = `audio_${Date.now()}${ext}`;
+    // ======================================
+    // SAVE PUBLIC AUDIO
+    // ======================================
+    const fileName =
+      `audio_${Date.now()}${ext}`;
 
     const dir = path.join(
       process.cwd(),
@@ -46,28 +74,38 @@ export async function handleAudio(file, userPrompt = "") {
     );
 
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(dir, {
+        recursive: true,
+      });
     }
 
-    const finalPath = path.join(dir, fileName);
+    const finalPath = path.join(
+      dir,
+      fileName
+    );
 
-    fs.writeFileSync(finalPath, file.buffer);
+    fs.writeFileSync(
+      finalPath,
+      file.buffer
+    );
 
     const fileUrl =
       `${process.env.PUBLIC_URL}/generated/${fileName}`;
 
-    // =========================
-    // IF NO API → JUST RETURN FILE
-    // =========================
+    // ======================================
+    // NO API KEY → STILL RETURN AUDIO
+    // ======================================
     if (!apiKey) {
-      return `🎧 Audio Ready
-
-${fileUrl}`;
+      return {
+        type: "audio",
+        url: fileUrl,
+        transcript: "",
+      };
     }
 
-    // =========================
-    // TRANSCRIPTION
-    // =========================
+    // ======================================
+    // GROQ WHISPER TRANSCRIPTION
+    // ======================================
     const form = new FormData();
 
     form.append(
@@ -85,70 +123,79 @@ ${fileUrl}`;
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization:
+            `Bearer ${apiKey}`,
         },
         body: form,
       }
     );
 
     if (!res.ok) {
-      throw new Error(await res.text());
+      throw new Error(
+        await res.text()
+      );
     }
 
-    const data = await res.json();
+    const data =
+      await res.json();
 
-    const text =
+    let text =
       data?.text?.trim() || "";
 
-    // =========================
-    // RESPONSE LOGIC
-    // =========================
-    const p = userPrompt.toLowerCase();
-
-    if (!text) {
-      return `🎧 Audio Ready
-
-${fileUrl}
-
-⚠️ No speech detected`;
-    }
+    // ======================================
+    // SMART PROMPT MODES
+    // ======================================
+    const p =
+      String(userPrompt || "")
+        .toLowerCase()
+        .trim();
 
     if (
       p.includes("summary") ||
       p.includes("summarize")
     ) {
-      return `🎧 Audio Ready
-
-${fileUrl}
-
-📝 Summary:
-${text.substring(0, 2000)}`;
+      text =
+        `📝 Summary:\n\n${text.substring(0, 2000)}`;
     }
 
-    if (p.includes("translate")) {
-      return `🎧 Audio Ready
-
-${fileUrl}
-
-🌍 Transcript:
-${text}`;
+    if (
+      p.includes("translate")
+    ) {
+      text =
+        `🌍 Translation / Transcript:\n\n${text}`;
     }
 
-    return `🎧 Audio Ready
+    // ======================================
+    // FINAL STRUCTURED RESPONSE
+    // ======================================
+    return {
+      type: "audio",
+      url: fileUrl,
+      transcript: text,
+    };
 
-${fileUrl}
-
-📝 Transcript:
-${text}`;
   } catch (err) {
-    console.error("Audio error:", err.message);
+    console.error(
+      "❌ Audio Tool Error:",
+      err.message
+    );
 
-    return "⚠️ Audio processing failed.";
+    return {
+      type: "text",
+      text: "⚠️ Audio processing failed.",
+    };
+
   } finally {
+    // ======================================
+    // CLEAN TEMP FILE
+    // ======================================
     try {
-      if (tempPath && fs.existsSync(tempPath)) {
+      if (
+        tempPath &&
+        fs.existsSync(tempPath)
+      ) {
         fs.unlinkSync(tempPath);
       }
-    } catch {}
+    } catch (_) {}
   }
 }

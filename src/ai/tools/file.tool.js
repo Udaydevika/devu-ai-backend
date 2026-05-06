@@ -1,38 +1,65 @@
 // src/ai/tools/file.tool.js
 
 import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-
-// ✅ ONLY WORKING WAY
-const pdf = require("pdf-parse");
-
 import mammoth from "mammoth";
+
+// ==========================================
+// ✅ pdf-parse ESM SAFE FIX
+// ==========================================
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 
 /**
  * ==========================================
- * 🔥 DevU AI FINAL FILE TOOL (RENDER SAFE)
+ * 🔥 DevU AI FINAL FILE TOOL
+ *
+ * Features:
+ * ✅ PDF support
+ * ✅ DOCX support
+ * ✅ TXT / CSV / JSON / MD
+ * ✅ Resume detection
+ * ✅ Structured response format
+ * ✅ Render safe
  * ==========================================
  */
 
 export async function handleFile(file) {
   try {
+    // ======================================
+    // VALIDATE
+    // ======================================
     if (!file || !file.buffer) {
-      return "⚠️ No file uploaded.";
+      return {
+        type: "text",
+        text: "⚠️ No file uploaded.",
+      };
     }
 
     let text = "";
 
-    const mime = file.mimeType || file.mimetype || "";
+    const mime =
+      file.mimeType ||
+      file.mimetype ||
+      "";
+
     const name = String(
-      file.name || file.originalname || "document"
+      file.name ||
+      file.originalname ||
+      "document"
     ).toLowerCase();
 
     // ======================================
-    // PDF ✅ FULL FIX
+    // PDF
     // ======================================
-    if (mime.includes("pdf") || name.endsWith(".pdf")) {
-      const data = await pdf(file.buffer);
-      text = data?.text || "";
+    if (
+      mime.includes("pdf") ||
+      name.endsWith(".pdf")
+    ) {
+      const data =
+        await pdfParse(file.buffer);
+
+      text =
+        data?.text || "";
     }
 
     // ======================================
@@ -43,15 +70,17 @@ export async function handleFile(file) {
       mime.includes("officedocument") ||
       name.endsWith(".docx")
     ) {
-      const data = await mammoth.extractRawText({
-        buffer: file.buffer,
-      });
+      const data =
+        await mammoth.extractRawText({
+          buffer: file.buffer,
+        });
 
-      text = data?.value || "";
+      text =
+        data?.value || "";
     }
 
     // ======================================
-    // TEXT FILES
+    // TXT / CSV / JSON / MD
     // ======================================
     else if (
       mime.includes("text") ||
@@ -62,14 +91,16 @@ export async function handleFile(file) {
       name.endsWith(".json") ||
       name.endsWith(".md")
     ) {
-      text = file.buffer.toString("utf8");
+      text =
+        file.buffer.toString("utf8");
     }
 
     // ======================================
     // FALLBACK
     // ======================================
     else {
-      text = file.buffer.toString("utf8");
+      text =
+        file.buffer.toString("utf8");
     }
 
     // ======================================
@@ -82,8 +113,14 @@ export async function handleFile(file) {
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
+    // ======================================
+    // EMPTY CHECK
+    // ======================================
     if (!text) {
-      return "⚠️ No readable text found in file.";
+      return {
+        type: "text",
+        text: "⚠️ No readable text found in file.",
+      };
     }
 
     // ======================================
@@ -91,66 +128,43 @@ export async function handleFile(file) {
     // ======================================
     const preview =
       text.length > 12000
-        ? text.substring(0, 12000) + "\n\n...[truncated]"
+        ? text.substring(0, 12000) +
+          "\n\n...[truncated]"
         : text;
 
     // ======================================
     // RESUME DETECTION
     // ======================================
+    const lower =
+      preview.toLowerCase();
+
     const isResume =
       name.includes("resume") ||
       name.includes("cv") ||
-      (preview.toLowerCase().includes("experience") &&
-        preview.toLowerCase().includes("education"));
+      (
+        lower.includes("experience") &&
+        lower.includes("education")
+      );
 
     // ======================================
-    // RESUME MODE
+    // FINAL STRUCTURED RESPONSE
     // ======================================
-    if (isResume) {
-      return `
-📄 Resume Read Successfully
+    return {
+      type: "file",
+      fileName: name,
+      isResume,
+      text: preview,
+    };
 
-📌 File Name:
-${name}
-
-🧠 Resume Content Preview:
-
-${preview}
-
-💡 Ask Next:
-• Improve my resume
-• ATS optimize resume
-• Make professional resume
-• Find mistakes
-• Convert to PDF
-• Rewrite summary
-`;
-    }
-
-    // ======================================
-    // NORMAL MODE
-    // ======================================
-    return `
-📄 File Read Successfully
-
-📌 File Name:
-${name}
-
-📝 Content Preview:
-
-${preview}
-
-💡 Ask Next:
-• Summarize this
-• Explain key points
-• Convert to notes
-• Translate document
-• Make PDF
-• Find mistakes
-• Extract action items
-`;
   } catch (err) {
-    console.error("❌ File Tool Error:", err.message);
-    return "⚠️ Failed to process file.";
+    console.error(
+      "❌ File Tool Error:",
+      err.message
+    );
+
+    return {
+      type: "text",
+      text: "⚠️ Failed to process file.",
+    };
   }
 }

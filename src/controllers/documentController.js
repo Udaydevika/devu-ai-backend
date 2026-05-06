@@ -1,44 +1,67 @@
-import fs from "fs";
-import path from "path";
-import { extractTextFromFile } from "../services/documentService.js";
-import { summarizeDocument } from "../services/documentService.js";
+import {
+  extractTextFromFile,
+  summarizeDocument,
+} from "../services/documentService.js";
+
+/**
+ * ==========================================
+ * 🔥 DevU AI DOCUMENT CONTROLLER
+ * ==========================================
+ */
 
 export const handleDocumentUpload = async (req, res) => {
   try {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      return res.status(400).json({
+        success: false,
+        error: "No file uploaded",
+      });
     }
 
-    const filePath = file.path;
+    console.log(
+      "📄 Document received:",
+      file.originalname
+    );
 
-    console.log("📄 Document received:", file.originalname);
+    // ✅ EXTRACT TEXT FROM BUFFER
+    const text = await extractTextFromFile(
+      file.buffer,
+      file.mimetype
+    );
 
-    // =========================
-    // STEP 3 — EXTRACT TEXT
-    // =========================
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No readable text found",
+      });
+    }
 
-    const text = await extractTextFromFile(filePath, file.mimetype);
+    console.log(
+      "📝 Extracted text length:",
+      text.length
+    );
 
-    console.log("📝 Extracted text length:", text.length);
-
-    // =========================
-    // STEP 4 — SUMMARIZE
-    // =========================
-
+    // ✅ AI SUMMARY
     const summary = await summarizeDocument(text);
-
-    // cleanup
-    fs.unlinkSync(filePath);
 
     return res.json({
       success: true,
+      type: "document",
+      text,
       summary,
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Document processing failed" });
+    console.error(
+      "❌ Document Controller:",
+      err.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Document processing failed",
+    });
   }
 };

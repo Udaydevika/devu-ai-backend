@@ -1,86 +1,55 @@
 import fs from "fs";
 import path from "path";
-import { extractFrames } from "../utils/extractframes.js";
-import axios from "axios";
+
+/**
+ * ==========================================
+ * 🔥 DevU AI VIDEO CONTROLLER
+ * ==========================================
+ */
 
 export const handleVideoUpload = async (req, res) => {
   try {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: "No video uploaded" });
+      return res.status(400).json({
+        success: false,
+        error: "No video uploaded",
+      });
     }
 
-    const videoPath = file.path;
+    const ext =
+      path.extname(file.originalname) || ".mp4";
 
-    console.log("📹 Video received:", videoPath);
+    const fileName = `video_${Date.now()}${ext}`;
 
-    // STEP 1: Extract frames
-    const frames = await extractFrames(videoPath);
+    const dir = path.join(
+      process.cwd(),
+      "public",
+      "generated"
+    );
 
-    console.log("🖼 Frames extracted:", frames);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
 
-    // STEP 2: Convert frames to base64
-    const images = frames.map((framePath) => {
-      const buffer = fs.readFileSync(framePath);
-      return `data:image/png;base64,${buffer.toString("base64")}`;
-    });
+    const filePath = path.join(dir, fileName);
 
-    // STEP 3: Send to AI model
-    const aiResponse = await analyzeVideoFrames(images);
-
-    // cleanup files
-    fs.unlinkSync(videoPath);
-    frames.forEach(f => fs.unlinkSync(f));
+    // ✅ SAVE VIDEO
+    fs.writeFileSync(filePath, file.buffer);
 
     return res.json({
       success: true,
-      result: aiResponse
+      type: "video",
+      url: `${process.env.PUBLIC_URL}/generated/${fileName}`,
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Video processing failed" });
+    console.error("❌ Video Controller:", err.message);
+
+    return res.status(500).json({
+      success: false,
+      error: "Video processing failed",
+    });
   }
 };
-
-async function analyzeVideoFrames(images) {
-
-  const content = [
-    {
-      type: "text",
-      text: "Explain what is happening in this video clearly."
-    }
-  ];
-
-  // attach frames
-  images.forEach(img => {
-    content.push({
-      type: "image_url",
-      image_url: {
-        url: img
-      }
-    });
-  });
-
-  const response = await axios.post(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      model: "openai/gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: content
-        }
-      ]
-    },
-    {
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
-      }
-    }
-  );
-
-  return response.data.choices[0].message.content;
-}
