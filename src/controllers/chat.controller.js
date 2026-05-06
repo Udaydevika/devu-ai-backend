@@ -136,51 +136,95 @@ export async function chatController(req, res) {
     console.log("🧠 TOOL:", tool);
 
     // =========================
-    // ✅ IMAGE ANALYSIS FIX
-    // If user uploads image
-    // =========================
-    if (
+// 🔥 CAMERA + IMAGE ANALYSIS
+// =========================
+
+if (
   files.length > 0 &&
-  files[0].mimetype?.startsWith("image/")
+  files[0]?.mimetype?.startsWith("image/")
 ) {
-  const stream = await streamGemini(
-    messages,
-    files[0].buffer,
-    files[0].mimetype
-  );
+  try {
 
-  let fullResponse = "";
+    const file = files[0];
 
-  for await (const token of stream) {
-    fullResponse += token;
-  }
+    // =====================================
+    // OCR MODE
+    // =====================================
+    const lower =
+      lastText.toLowerCase();
 
-  return res.json({
-    text: fullResponse || "Could not analyze image.",
-    usedModel: "gemini-vision",
-  });
-}
+    const ask =
+      lower.includes("ocr") ||
+      lower.includes("extract text") ||
+      lower.includes("read text") ||
+      lower.includes("scan")
+        ? `
+Extract all readable text from this image clearly.
 
-    // =========================
-    // IMAGE GENERATION
-    // =========================
-    if (
-      tool === "image" ||
-      (tool === "vision" &&
-        lastText
-          .toLowerCase()
-          .includes("ghibli"))
-    ) {
-      const imageUrl =
-        await generateImage(lastText);
+Preserve:
+- headings
+- numbers
+- tables
+- formatting
+`
+        : `
+Analyze this image in detail.
 
-      return res.json({
-        text:
-          imageUrl ||
-          "Image generation failed",
-        usedModel: "image-tool",
-      });
+Explain:
+- what is visible
+- objects
+- people
+- scene
+- text if visible
+- important details
+`;
+
+    const visionMessages = [
+      {
+        role: "user",
+        content: ask,
+      },
+    ];
+
+    // =====================================
+    // GEMINI VISION
+    // =====================================
+    const stream =
+      await streamGemini(
+        visionMessages,
+        file.buffer,
+        file.mimetype
+      );
+
+    let fullResponse = "";
+
+    for await (const token of stream) {
+      fullResponse += token;
     }
+
+    fullResponse =
+      cleanText(fullResponse);
+
+    return res.json({
+      type: "vision",
+      text:
+        fullResponse ||
+        "Could not analyze image.",
+      usedModel: "gemini-vision",
+    });
+
+  } catch (err) {
+    console.error(
+      "❌ Vision Error:",
+      err.message
+    );
+
+    return res.status(500).json({
+      text:
+        "⚠️ Failed to analyze image",
+    });
+  }
+}
 
         // =========================
     // 📄 DOCUMENT / PDF / TXT

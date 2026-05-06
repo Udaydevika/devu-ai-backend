@@ -212,32 +212,6 @@ export const chatStreamController = [
         }
 
         // ====================================
-        // 👁️ VISION
-        // ====================================
-
-        if (tool === "vision") {
-          const stream =
-            await streamGemini(
-              messages,
-              file.buffer,
-              file.mimeType
-            );
-
-          for await (const t of stream) {
-            send(
-              res,
-              "text",
-              t
-            );
-          }
-
-          return done(
-            res,
-            ping
-          );
-        }
-
-        // ====================================
         // 🎧 AUDIO
         // ====================================
 
@@ -359,9 +333,94 @@ export const chatStreamController = [
         );
       }
 
-      // ======================================
-      // TEXT MODE
-      // ======================================
+              // ====================================
+        // 📸 CAMERA / IMAGE ANALYSIS
+        // ====================================
+
+        if (
+          file.mimeType?.startsWith("image/")
+        ) {
+
+          // 🎨 GHIBLI IMAGE GENERATION
+          if (
+            prompt
+              .toLowerCase()
+              .includes("ghibli")
+          ) {
+
+            const out =
+              await generateImage(
+                `Studio Ghibli style, ${prompt}`
+              );
+
+            if (
+              out?.type === "image"
+            ) {
+              send(
+                res,
+                "image",
+                out.url
+              );
+
+              sendDownload(
+                res,
+                "Ghibli Art",
+                out.url,
+                "image"
+              );
+            } else {
+              send(
+                res,
+                "text",
+                out?.text ||
+                  "⚠️ Failed to generate image"
+              );
+            }
+
+            return done(
+              res,
+              ping
+            );
+          }
+
+          // ==================================
+          // 👁️ NORMAL IMAGE ANALYSIS
+          // ==================================
+
+          const ask =
+            prompt?.trim() ||
+            "Analyze this image clearly and explain all important details.";
+
+          const stream =
+            await streamGemini(
+              [
+                {
+                  role: "user",
+                  content: ask,
+                },
+              ],
+              file.buffer,
+              file.mimeType
+            );
+
+          let output = "";
+
+          for await (const t of stream) {
+            output += t;
+          }
+
+          send(
+            res,
+            "text",
+            output ||
+              "⚠️ Could not analyze image."
+          );
+
+          return done(
+            res,
+            ping
+          );
+        }
 
       // ====================================
       // 🎨 IMAGE

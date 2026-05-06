@@ -27,9 +27,9 @@ export const handleDocumentUpload = async (req, res) => {
 
     // ✅ EXTRACT TEXT FROM BUFFER
     const text = await extractTextFromFile(
-      file.buffer,
-      file.mimetype
-    );
+  file.buffer,
+  file.mimetype
+);
 
     if (!text || text.trim().length === 0) {
       return res.status(400).json({

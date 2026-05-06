@@ -4,8 +4,17 @@ import { handleDocumentUpload } from "../controllers/documentController.js";
 
 const router = express.Router();
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024,
+  },
+});
 
-router.post("/document/upload", upload.single("file"), handleDocumentUpload);
+router.post(
+  "/document/upload",
+  upload.single("file"),
+  handleDocumentUpload
+);
 
 export default router;
