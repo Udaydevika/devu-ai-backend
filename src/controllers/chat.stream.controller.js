@@ -559,27 +559,43 @@ if (
       }
 
             // ================= CHAT =================
-      const stream =
-        await streamGroq(messages);
+      // ======================================
+// NORMAL AI CHAT
+// ======================================
 
-      for await (const t of stream) {
+const stream =
+  await streamGroq(messages);
 
-        if (t) {
+let hasResponse = false;
 
-          send(
-            res,
-            "text",
-            t.toString()
-          );
-        }
-      }
+for await (const t of stream) {
 
-      return done(
+  if (!t) continue;
+
+  hasResponse = true;
+
+  send(
+    res,
+    "text",
+    t.toString()
+  );
+}
+
+// EMPTY RESPONSE FIX
+if (!hasResponse) {
+
+  send(
+    res,
+    "text",
+    "⚠️ AI returned empty response."
+  );
+}
+
+return done(
   res,
   ping
 );
 }
-
     } catch (err) {
 
       console.error(err);
