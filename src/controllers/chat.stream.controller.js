@@ -536,30 +536,36 @@ if (
         );
       }
 
-      // ====================================
-      // 🔎 NEWS
-      // ====================================
+// ====================================
+// 🔎 NEWS
+// ====================================
 
-      if (tool === "search") {
-        const news =
-          await getLiveNews(
-            prompt
-          );
+if (tool === "search") {
 
-        send(
-          res,
-          "text",
-          news
-        );
+  const news =
+    await getLiveNews(
+      prompt
+    );
 
-        return done(
-          res,
-          ping
-        );
-      }
+  send(
+    res,
+    "text",
+    news
+  );
 
-            // ================= CHAT =================
-      // ======================================
+  return done(
+    res,
+    ping
+  );
+}
+
+// ====================================
+// END FILE BLOCK
+// ====================================
+
+} // closes if(file)
+
+// ======================================
 // NORMAL AI CHAT
 // ======================================
 
@@ -581,7 +587,10 @@ for await (const t of stream) {
   );
 }
 
+// ======================================
 // EMPTY RESPONSE FIX
+// ======================================
+
 if (!hasResponse) {
 
   send(
@@ -595,22 +604,22 @@ return done(
   res,
   ping
 );
+
+} catch (err) {
+
+  console.error(err);
+
+  send(
+    res,
+    "text",
+    "⚠️ Server error"
+  );
+
+  return done(
+    res,
+    ping
+  );
 }
-    } catch (err) {
 
-      console.error(err);
-
-      send(
-        res,
-        "text",
-        "⚠️ Server error"
-      );
-
-      return done(
-        res,
-        ping
-      );
-    }
-  },
-  
+},
 ];
