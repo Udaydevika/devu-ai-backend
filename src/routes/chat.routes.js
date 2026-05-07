@@ -19,7 +19,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 20 * 1024 * 1024, // 20MB
-    files: 5,
+    files: 10,
   },
 });
 
@@ -34,7 +34,7 @@ router.post(
   ensureUser,
   freeChatLimiter,
 
-   upload.array("files", 5),
+   upload.array("files", 10),
    
   chatController
 );
@@ -70,7 +70,7 @@ router.post(
   freeChatLimiter,
 
   (req, res, next) => {
-    upload.array("files", 5)(
+    upload.array("files", 10)(
       req,
       res,
       function (err) {

@@ -8,18 +8,21 @@ import { detectTool } from "../ai/toolRouter.js";
 import { handleFile } from "../ai/tools/file.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
 import { handleAudio } from "../ai/tools/audio.tool.js";
+import { handleOCR } from "../ai/tools/ocr.tool.js";
 
 import {
   generateImage,
   generateVariations,
 } from "../ai/tools/image.tool.js";
 
-import { getLiveNews } from "../ai/tools/news.tool.js";
-import { handleOCR } from "../ai/tools/ocr.tool.js";
-import { createPDF } from "../ai/tools/pdf.tool.js";
-import { generateResume } from "../ai/tools/resume.tool.js";
-
 import { editImage } from "../ai/tools/image.edit.tool.js";
+
+import { getLiveNews } from "../ai/tools/news.tool.js";
+
+import { createPDF } from "../ai/tools/pdf.tool.js";
+
+import { generateResume } from "../ai/tools/resume.tool.js";
+import { handleVision } from "../ai/tools/vision.tool.js";
 
 // ==========================================
 // SSE HELPERS
@@ -162,234 +165,36 @@ if (file) {
   const mime =
     file.mimeType || "";
 
+  console.log(
+    "📂 FILE:",
+    file.name,
+    mime
+  );
+
   // ====================================
-  // 🖼 IMAGE / CAMERA AI
+  // 🖼 IMAGE / CAMERA / OCR
   // ====================================
 
   if (
     mime.startsWith("image/")
   ) {
 
-    // 🎨 GHIBLI
-    if (
-      prompt
-        .toLowerCase()
-        .includes("ghibli")
-    ) {
+    try {
 
-      const out =
-        await generateImage(
-          `Studio Ghibli style, ${prompt}`
-        );
-
+      // 🎨 IMAGE GENERATION
       if (
-        out?.type === "image"
+        tool === "image"
       ) {
 
-        send(
-          res,
-          "image",
-          out.url
-        );
-
-        sendDownload(
-          res,
-          "Ghibli Art",
-          out.url,
-          "image"
-        );
-
-      } else {
-
-        send(
-          res,
-          "text",
-          out?.text ||
-          "⚠️ Failed to generate image"
-        );
-      }
-
-      return done(
-        res,
-        ping
-      );
-    }
-
-    // 👁️ OCR + IMAGE ANALYSIS
-
-    const result =
-      await handleOCR(
-        file,
-        prompt
-      );
-
-    send(
-      res,
-      "text",
-      result
-    );
-
-    return done(
-      res,
-      ping
-    );
-  }
-       
-        // ====================================
-  // 🎧 AUDIO AI
-  // ====================================
-
-  if (
-    mime.startsWith("audio/")
-  ) {
-
-    const out =
-      await handleAudio(
-        file,
-        prompt
-      );
-
-    if (
-      out?.type ===
-      "audio"
-    ) {
-
-      send(
-        res,
-        "audio",
-        out.url
-      );
-
-      sendDownload(
-        res,
-        "Audio",
-        out.url,
-        "audio"
-      );
-
-      if (
-        out.transcript
-      ) {
-
-        send(
-          res,
-          "text",
-          out.transcript
-        );
-      }
-
-    } else {
-
-      send(
-        res,
-        "text",
-        out?.text ||
-        "⚠️ Audio processing failed."
-      );
-    }
-
-    return done(
-      res,
-      ping
-    );
-  }
-
-
-        // ====================================
-  // 🎬 VIDEO AI
-  // ====================================
-
-  if (
-    mime.startsWith("video/")
-  ) {
-
-    const out =
-      await handleVideo(
-        file,
-        prompt
-      );
-
-    if (
-      out?.type ===
-      "video"
-    ) {
-
-      send(
-        res,
-        "video",
-        out.url
-      );
-
-      sendDownload(
-        res,
-        "Video",
-        out.url,
-        "video"
-      );
-
-    } else {
-
-      send(
-        res,
-        "text",
-        out?.text ||
-        "⚠️ Video processing failed."
-      );
-    }
-
-    return done(
-      res,
-      ping
-    );
-  }
-
- 
-
-       // ====================================
-  // 📄 PDF / DOCUMENT AI
-  // ====================================
-
-  if (
-    mime.includes("pdf") ||
-    mime.includes("document") ||
-    mime.includes("text") ||
-    mime.includes("sheet")
-  ) {
-
-    const out =
-      await handleFile(
-        file,
-        prompt
-      );
-
-    send(
-      res,
-      "text",
-      out?.text ||
-      "⚠️ Failed to process document."
-    );
-
-    return done(
-      res,
-      ping
-    );
-  }
-
-
-      // ====================================
-      // 🎨 IMAGE
-      // ====================================
-
-      if (tool === "image") {
         const out =
           await generateImage(
             prompt
           );
 
         if (
-          out?.type ===
-          "image"
+          out?.type === "image"
         ) {
+
           send(
             res,
             "image",
@@ -402,11 +207,14 @@ if (file) {
             out.url,
             "image"
           );
+
         } else {
+
           send(
             res,
             "text",
-            out?.text
+            out?.text ||
+            "⚠️ Image generation failed."
           );
         }
 
@@ -416,56 +224,394 @@ if (file) {
         );
       }
 
-      // ====================================
-      // 🎨 IMAGE VARIATIONS
-      // ====================================
+      // 👁 OCR + VISION
+      let result = "";
 
-      if (
-        tool ===
-        "image_variation"
-      ) {
-        const imgs =
-          await generateVariations(
-            prompt,
-            3
-          );
+const lower =
+  prompt.toLowerCase();
 
-        imgs.forEach(
-          (img) => {
-            send(
-              res,
-              "image",
-              img
-            );
-          }
+// OCR REQUESTS
+if (
+
+  lower.includes("extract text") ||
+  lower.includes("ocr") ||
+  lower.includes("read text") ||
+  lower.includes("scan text") ||
+  lower.includes("document")
+
+) {
+
+  result =
+    await handleOCR(
+      file,
+      prompt
+    );
+
+} else {
+
+  // REAL IMAGE AI
+  result =
+    await handleVision(
+      file,
+      prompt
+    );
+}
+
+      send(
+        res,
+        "text",
+        result
+      );
+
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "IMAGE ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to read image."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // 🎬 VIDEO AI
+  // ====================================
+
+  else if (
+    mime.startsWith("video/")
+  ) {
+
+    try {
+
+      const out =
+        await handleVideo(
+          file,
+          prompt
         );
 
-        return done(
+      if (
+        out?.type ===
+        "video"
+      ) {
+
+        send(
           res,
-          ping
+          "video",
+          out.url
         );
-      }
 
-      // ====================================
-      // 🖼️ IMAGE EDIT
-      // ====================================
+        sendDownload(
+          res,
+          "Video",
+          out.url,
+          "video"
+        );
 
-      if (
-        tool ===
-        "image_edit"
-      ) {
+      } else {
+
         send(
           res,
           "text",
-          "⚠️ Upload image first."
-        );
-
-        return done(
-          res,
-          ping
+          out?.text ||
+          "⚠️ Video processing failed."
         );
       }
 
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "VIDEO ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to process video."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // 🎧 AUDIO AI
+  // ====================================
+
+  else if (
+    mime.startsWith("audio/")
+  ) {
+
+    try {
+
+      const out =
+        await handleAudio(
+          file,
+          prompt
+        );
+
+      if (
+        out?.transcript
+      ) {
+
+        send(
+          res,
+          "text",
+          out.transcript
+        );
+
+      } else {
+
+        send(
+          res,
+          "text",
+          out?.text ||
+          "⚠️ Audio processing failed."
+        );
+      }
+
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "AUDIO ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to process audio."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // 📄 PDF / DOC / TXT
+  // ====================================
+
+  else if (
+
+    mime.includes("pdf") ||
+
+    mime.includes("document") ||
+
+    mime.includes("word") ||
+
+    mime.includes("sheet") ||
+
+    mime.includes("excel") ||
+
+    mime.includes("text")
+
+  ) {
+
+    try {
+
+      const out =
+        await handleFile(
+          file,
+          prompt
+        );
+
+      send(
+        res,
+        "text",
+        out?.text ||
+        "⚠️ Failed to process document."
+      );
+
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "DOCUMENT ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to process document."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // 🎨 IMAGE VARIATION
+  // ====================================
+
+  else if (
+    tool ===
+    "image_variation"
+  ) {
+
+    try {
+
+      const imgs =
+        await generateVariations(
+          prompt,
+          3
+        );
+
+      imgs.forEach(
+        (img) => {
+
+          send(
+            res,
+            "image",
+            img
+          );
+        }
+      );
+
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "VARIATION ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Image variation failed."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // 🖌 IMAGE EDIT
+  // ====================================
+
+  else if (
+    tool ===
+    "image_edit"
+  ) {
+
+    try {
+
+      const out =
+        await editImage(
+          file,
+          prompt
+        );
+
+      if (
+        out?.url
+      ) {
+
+        send(
+          res,
+          "image",
+          out.url
+        );
+
+      } else {
+
+        send(
+          res,
+          "text",
+          out?.text ||
+          "⚠️ Image edit failed."
+        );
+      }
+
+      return done(
+        res,
+        ping
+      );
+
+    } catch (err) {
+
+      console.error(
+        "EDIT ERROR:",
+        err
+      );
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to edit image."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+  }
+
+  // ====================================
+  // ❌ UNSUPPORTED
+  // ====================================
+
+  else {
+
+    send(
+      res,
+      "text",
+      `⚠️ Unsupported file type: ${mime}`
+    );
+
+    return done(
+      res,
+      ping
+    );
+  }
+
+}
 
     // ====================================
 // 🎬 IMAGE TO VIDEO
@@ -559,11 +705,7 @@ if (tool === "search") {
   );
 }
 
-// ====================================
-// END FILE BLOCK
-// ====================================
 
-} // closes if(file)
 
 // ======================================
 // NORMAL AI CHAT
@@ -605,7 +747,14 @@ return done(
   ping
 );
 
-} catch (err) {
+// ====================================
+// END FILE BLOCK
+// ====================================
+
+} // closes if(file)
+
+
+catch (err) {
 
   console.error(err);
 
@@ -620,6 +769,5 @@ return done(
     ping
   );
 }
-
-},
+  },
 ];
