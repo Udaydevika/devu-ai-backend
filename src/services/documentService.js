@@ -35,7 +35,10 @@ export async function extractTextFromFile(buffer, mimeType) {
     // =========================
     // 📄 TXT / fallback
     // =========================
-    return buffer.toString("utf-8");
+    return buffer
+  .toString("utf-8")
+  .replace(/\0/g, "")
+  .trim();
 
   } catch (err) {
     console.error("❌ File extraction error:", err.message);

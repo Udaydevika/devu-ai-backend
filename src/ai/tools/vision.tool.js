@@ -1,10 +1,9 @@
-// src/ai/tools/vision.tool.js
-
-import { streamGemini } from "../../services/gemini.service.js";
+import { streamGemini }
+from "../../services/gemini.service.js";
 
 /**
  * ==========================================
- * 👁️ DevU AI VISION TOOL
+ * 👁️ DEVU AI VISION TOOL
  * ==========================================
  * Supports:
  * ✅ Camera AI
@@ -21,14 +20,27 @@ export async function handleVision(
   file,
   prompt = ""
 ) {
+
   try {
+
+    // =====================================
+    // VALIDATION
+    // =====================================
 
     if (
       !file ||
       !file.buffer
     ) {
-      return "⚠️ No image uploaded.";
+
+      return {
+        type: "text",
+        text: "⚠️ No image uploaded.",
+      };
     }
+
+    // =====================================
+    // PROMPT
+    // =====================================
 
     const ask =
       prompt?.trim() ||
@@ -40,6 +52,10 @@ export async function handleVision(
         content: ask,
       },
     ];
+
+    // =====================================
+    // GEMINI VISION
+    // =====================================
 
     const stream =
       await streamGemini(
@@ -62,20 +78,39 @@ export async function handleVision(
     output =
       output.trim();
 
+    // =====================================
+    // EMPTY RESPONSE
+    // =====================================
+
     if (!output) {
 
-      return "⚠️ No image understanding generated.";
+      return {
+        type: "text",
+        text:
+          "⚠️ No image understanding generated.",
+      };
     }
 
-    return output;
+    // =====================================
+    // SUCCESS
+    // =====================================
+
+    return {
+      type: "text",
+      text: output,
+    };
 
   } catch (err) {
 
     console.error(
-      "VISION ERROR:",
-      err
+      "❌ VISION ERROR:",
+      err.message
     );
 
-    return "⚠️ Failed to analyze image.";
+    return {
+      type: "text",
+      text:
+        "⚠️ Failed to analyze image.",
+    };
   }
 }

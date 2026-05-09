@@ -258,10 +258,10 @@ if (
 }
 
       send(
-        res,
-        "text",
-        result
-      );
+  res,
+  result?.type || "text",
+  result?.text || result
+);
 
       return done(
         res,
@@ -293,8 +293,16 @@ if (
   // ====================================
 
   else if (
-    mime.startsWith("video/")
-  ) {
+
+  mime.startsWith("video/") ||
+
+  mime.includes("mp4") ||
+
+  mime.includes("mov") ||
+
+  mime.includes("avi")
+
+) {
 
     try {
 
@@ -424,19 +432,23 @@ if (
 
   else if (
 
-    mime.includes("pdf") ||
+  mime.includes("pdf") ||
 
-    mime.includes("document") ||
+  mime.includes("document") ||
 
-    mime.includes("word") ||
+  mime.includes("word") ||
 
-    mime.includes("sheet") ||
+  mime.includes("sheet") ||
 
-    mime.includes("excel") ||
+  mime.includes("excel") ||
 
-    mime.includes("text")
+  mime.includes("text") ||
 
-  ) {
+  mime.includes("csv") ||
+
+  mime.includes("json")
+
+) {
 
     try {
 
@@ -447,12 +459,11 @@ if (
         );
 
       send(
-        res,
-        "text",
-        out?.text ||
-        "⚠️ Failed to process document."
-      );
-
+  res,
+  out?.type || "text",
+  out?.text ||
+  "⚠️ Failed to process document."
+);
       return done(
         res,
         ping
@@ -746,13 +757,7 @@ return done(
   res,
   ping
 );
-
-// ====================================
-// END FILE BLOCK
-// ====================================
-
-} // closes if(file)
-
+    }
 
 catch (err) {
 
@@ -769,5 +774,6 @@ catch (err) {
     ping
   );
 }
+    
   },
 ];

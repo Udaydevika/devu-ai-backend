@@ -44,27 +44,31 @@ function humanizeText(text = "") {
 
 async function getBestStream(messages) {
   const providers = [
-    {
-      name: "gpt4o",
-      run: async () =>
-        await streamOpenRouter(messages, [], "gpt-4o-mini"),
-    },
-    {
-      name: "gemini",
-      run: async () =>
-        await streamGemini(messages),
-    },
-    {
-      name: "groq",
-      run: async () =>
-        await streamGroq(messages),
-    },
-    {
-      name: "huggingface",
-      run: async () =>
-        await streamHuggingFace(messages),
-    },
-  ];
+  {
+    name: "gemini",
+    run: async () =>
+      await streamGemini(messages),
+  },
+  {
+    name: "groq",
+    run: async () =>
+      await streamGroq(messages),
+  },
+  {
+    name: "gpt4o",
+    run: async () =>
+      await streamOpenRouter(
+        messages,
+        [],
+        "gpt-4o-mini"
+      ),
+  },
+  {
+    name: "huggingface",
+    run: async () =>
+      await streamHuggingFace(messages),
+  },
+];
 
   for (const provider of providers) {
     try {
@@ -137,7 +141,7 @@ export async function chatController(req, res) {
 
     console.log("🧠 TOOL:", tool);
 
-    // =========================
+  // =========================
 // 🔥 CAMERA + IMAGE ANALYSIS
 // =========================
 
@@ -145,36 +149,42 @@ if (
   files.length > 0 &&
   files[0]?.mimetype?.startsWith("image/")
 ) {
+
   try {
 
     const file = files[0];
 
-    // 🎨 GHIBLI IMAGE
-if (
-  lower.includes("ghibli")
-) {
-
-  const out =
-    await generateImage(
-      `Studio Ghibli style, ${lastText}`
-    );
-
-  return res.json({
-    type: "image",
-    image:
-      out?.url || "",
-    text:
-      "Ghibli image created",
-    usedModel:
-      "image-tool",
-  });
-}
-
-    // =====================================
-    // OCR MODE
-    // =====================================
+    // ✅ DECLARE ONLY ONCE
     const lower =
       lastText.toLowerCase();
+
+    // =====================================
+    // 🎨 GHIBLI IMAGE
+    // =====================================
+
+    if (
+      lower.includes("ghibli")
+    ) {
+
+      const out =
+        await generateImage(
+          `Studio Ghibli style, ${lastText}`
+        );
+
+      return res.json({
+        type: "image",
+        image:
+          out?.url || "",
+        text:
+          "Ghibli image created",
+        usedModel:
+          "image-tool",
+      });
+    }
+
+    // =====================================
+    // OCR OR VISION
+    // =====================================
 
     const ask =
       lower.includes("ocr") ||
@@ -202,19 +212,14 @@ Explain:
 - important details
 `;
 
-    const visionMessages = [
-      {
-        role: "user",
-        content: ask,
-      },
-    ];
-
-    // =====================================
-    // GEMINI VISION
-    // =====================================
     const stream =
       await streamGemini(
-        visionMessages,
+        [
+          {
+            role: "user",
+            content: ask,
+          },
+        ],
         file.buffer,
         file.mimetype
       );
@@ -233,16 +238,19 @@ Explain:
       text:
         fullResponse ||
         "Could not analyze image.",
-      usedModel: "gemini-vision",
+      usedModel:
+        "gemini-vision",
     });
 
   } catch (err) {
+
     console.error(
       "❌ Vision Error:",
       err.message
     );
 
     return res.status(500).json({
+      type: "text",
       text:
         "⚠️ Failed to analyze image",
     });
@@ -268,12 +276,19 @@ if (
     );
 
   return res.json({
-    text:
-      result?.transcript ||
-      result?.text ||
-      "Audio processed.",
-    usedModel: "audio-tool",
-  });
+  type:
+    result?.type || "audio",
+
+  audioUrl:
+    result?.url || null,
+
+  text:
+    result?.transcript ||
+    result?.text ||
+    "Audio processed.",
+
+  usedModel: "audio-tool",
+});
 }
       // Skip image because already handled above
       if (!file.mimetype?.startsWith("image/")) {
@@ -282,9 +297,13 @@ if (
         if (
           file.mimetype === "application/pdf" ||
           file.mimetype.includes("text") ||
+          file.mimetype.includes("csv") ||
+          file.mimetype.includes("json") ||
+          file.mimetype.includes("excel")||
+          file.mimetype.includes("sheet") ||
           file.mimetype.includes("document") ||
           file.originalname?.toLowerCase().endsWith(".docx") ||
-          file.originalname?.toLowerCase().endsWith(".txt")
+          file.originalname?.toLowerCase().endsWith(".txt") 
         ) {
           const extractedText =
             await handleFile(file);
@@ -313,21 +332,62 @@ if (
         }
 
         // 🎬 VIDEO
-        if (
-          file.mimetype?.startsWith("video/")
-        ) {
-          const result =
-            await handleVideo(file);
+if (
+  file.mimetype?.startsWith("video/")
+) {
 
-          return res.json({
-           text:
-  result?.text ||
-  "Video analyzed",
-          });
-        }
-      }
+  const result =
+    await handleVideo(
+      file,
+      lastText
+    );
+
+  // ✅ STRING RESPONSE
+  if (
+    typeof result === "string"
+  ) {
+
+    // URL video
+    if (
+      result.startsWith("http")
+    ) {
+
+      return res.json({
+        type: "video",
+        url: result,
+        text: "Video ready",
+        usedModel:
+          "video-tool",
+      });
     }
 
+    // analysis text
+    return res.json({
+      type: "text",
+      text: result,
+      usedModel:
+        "video-tool",
+    });
+  }
+
+  // ✅ OBJECT RESPONSE
+  return res.json({
+    type:
+      result?.type || "text",
+
+    url:
+      result?.url || null,
+
+    text:
+      result?.text ||
+      "Video processed",
+
+    usedModel:
+      "video-tool",
+  });
+}
+}
+    
     // =========================
     // NEWS / SEARCH
     // =========================
@@ -497,10 +557,13 @@ Make every reply useful, smart, and premium.
         fullResponse
       );
 
-    if (!fullResponse) {
-      fullResponse =
-        "Sorry, no response.";
-    }
+    if (
+  !fullResponse ||
+!fullResponse.trim()
+) {
+  fullResponse =
+    "⚠️ AI returned empty response.";
+}
 
     setCache(
       cacheKey,
@@ -517,6 +580,7 @@ Make every reply useful, smart, and premium.
         user?.freeChatsLeft ??
         null,
     });
+  }
   } catch (err) {
     logError(
       "AI_FATAL",

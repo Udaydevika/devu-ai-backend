@@ -1,10 +1,10 @@
-// src/ai/tools/ocr.tool.js
-
-import { streamGemini } from "../../services/gemini.service.js";
+import { streamGemini }
+from "../../services/gemini.service.js";
 
 /**
  * ==========================================
- * 🔥 DevU AI OCR TOOL
+ * 📄 DEVU AI OCR TOOL
+ * ==========================================
  * Supports:
  * ✅ Camera scanned docs
  * ✅ Handwritten notes
@@ -18,17 +18,39 @@ export async function handleOCR(
   file,
   prompt = ""
 ) {
+
   try {
+
+    // =====================================
+    // VALIDATION
+    // =====================================
+
     if (
       !file ||
       !file.buffer
     ) {
-      return "⚠️ No image uploaded.";
+
+      return {
+        type: "text",
+        text: "⚠️ No image uploaded.",
+      };
     }
+
+    // =====================================
+    // OCR PROMPT
+    // =====================================
 
     const ask =
       prompt?.trim() ||
-      "Extract all text from this image clearly. Preserve headings, tables, numbers and formatting when possible.";
+`
+Extract all readable text from this image clearly.
+
+Preserve:
+- headings
+- tables
+- numbers
+- formatting
+`;
 
     const messages = [
       {
@@ -37,29 +59,52 @@ export async function handleOCR(
       },
     ];
 
+    // =====================================
+    // GEMINI OCR
+    // =====================================
+
     const stream =
       await streamGemini(
         messages,
         file.buffer,
         file.mimeType ||
-          file.mimetype ||
-          "image/jpeg"
+        file.mimetype ||
+        "image/jpeg"
       );
 
     let output = "";
 
-    for await (const token of stream) {
+    for await (
+      const token of stream
+    ) {
+
       output += token;
     }
 
     output =
       output.trim();
 
+    // =====================================
+    // EMPTY RESPONSE
+    // =====================================
+
     if (!output) {
-      return "⚠️ No readable text detected.";
+
+      return {
+        type: "text",
+        text:
+          "⚠️ No readable text detected.",
+      };
     }
 
-    return `📄 OCR Complete
+    // =====================================
+    // SUCCESS
+    // =====================================
+
+    return {
+      type: "text",
+      text:
+`📄 OCR Complete
 
 📝 Extracted Text:
 
@@ -69,13 +114,20 @@ ${output}
 • Summarize this
 • Convert to notes
 • Translate text
-• Make PDF`;
+• Make PDF`,
+    };
+
   } catch (err) {
+
     console.error(
-      "OCR Tool Error:",
+      "❌ OCR TOOL ERROR:",
       err.message
     );
 
-    return "⚠️ Failed to read image text.";
+    return {
+      type: "text",
+      text:
+        "⚠️ Failed to read image text.",
+    };
   }
 }

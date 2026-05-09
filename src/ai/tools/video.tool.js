@@ -40,7 +40,10 @@ export async function handleVideo(file, userPrompt = "") {
 
   try {
     if (!file?.buffer) {
-      return "⚠️ No video file found.";
+      return {
+  type: "text",
+  text: "⚠️ No video file found.",
+};
     }
 
     ensureDir();
@@ -50,7 +53,11 @@ export async function handleVideo(file, userPrompt = "") {
 
     const sizeMB = file.buffer.length / 1024 / 1024;
     if (sizeMB > 25) {
-      return `⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 25MB.`;
+      return {
+  type: "text",
+  text:
+    `⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 25MB.`,
+};
     }
 
     // temp file (for FFmpeg tools)
@@ -88,7 +95,11 @@ export async function handleVideo(file, userPrompt = "") {
 
         fs.copyFileSync(captioned, finalPath);
 
-        return `${BASE_URL}/${fileName}`;
+       return {
+  type: "video",
+  url: `${BASE_URL}/${fileName}`,
+  text: "🎬 Viral reel created.",
+}; 
       } catch (e) {
         console.error("Viral mode fallback:", e.message);
         // fallback: just return simple clip
@@ -98,7 +109,17 @@ export async function handleVideo(file, userPrompt = "") {
           ext,
           vertical: false,
         });
-        return saveBuffer(fallback.buffer, fallback.filename);
+        const videoUrl =
+  saveBuffer(
+    fallback.buffer,
+    fallback.filename
+  );
+
+return {
+  type: "video",
+  url,
+  text: "🎬 Reel created.",
+};
       }
     }
 
@@ -151,7 +172,18 @@ export async function handleVideo(file, userPrompt = "") {
           vertical: true,
         });
 
-        return saveBuffer(reel.buffer, reel.filename);
+      
+  const videoUrl =
+  saveBuffer(
+    reel.buffer,
+    reel.filename
+  );
+
+return {
+  type: "video",
+  url: videoUrl,
+  text: "🎬 Clip created.",
+};
       } catch (e) {
         console.error("Highlight fallback:", e.message);
         const fallback = await trimVideo(file.buffer, {
@@ -160,7 +192,17 @@ export async function handleVideo(file, userPrompt = "") {
           ext,
           vertical: false,
         });
-        return saveBuffer(fallback.buffer, fallback.filename);
+        const fallbackUrl =
+  saveBuffer(
+    fallback.buffer,
+    fallback.filename
+  );
+
+return {
+  type: "video",
+  url: fallbackUrl,
+  text: "🎬 Fallback clip created.",
+};
       }
     }
 
@@ -179,7 +221,17 @@ export async function handleVideo(file, userPrompt = "") {
         vertical: false,
       });
 
-      return saveBuffer(reel.buffer, reel.filename);
+      const url =
+  saveBuffer(
+    reel.buffer,
+    reel.filename
+  );
+
+return {
+  type: "video",
+  url,
+  text: "🎬 Highlight reel created.",
+};
     }
 
     // =====================================================
@@ -190,7 +242,12 @@ export async function handleVideo(file, userPrompt = "") {
     if (!frames || frames.length === 0) {
       // fallback: at least return original video so UI works
       const fileName = `video_${Date.now()}${ext}`;
-      return saveBuffer(file.buffer, fileName);
+      const url = saveBuffer(file.buffer, fileName);
+      return {
+        type: "video",
+        url,
+        text: "🎬 Video clip created.",
+      };
     }
 
     const notes = [];
@@ -225,10 +282,17 @@ export async function handleVideo(file, userPrompt = "") {
     let summary = "";
     for await (const t of summaryStream) summary += t;
 
-    return `🎬 Video Analysis Complete\n\n${summary}`;
+    return {
+  type: "text",
+  text:
+`🎬 Video Analysis Complete ${summary}`,
+};
   } catch (err) {
     console.error("❌ Video Tool Error:", err.message);
-    return "⚠️ Failed to process video.";
+    return {
+      type: "text",
+      text: "⚠️ Failed to process video.",
+    };
   } finally {
     try {
       if (tempPath && fs.existsSync(tempPath)) {
