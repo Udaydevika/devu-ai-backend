@@ -305,8 +305,11 @@ if (
           file.originalname?.toLowerCase().endsWith(".docx") ||
           file.originalname?.toLowerCase().endsWith(".txt") 
         ) {
-          const extractedText =
-            await handleFile(file);
+          const fileResult =
+  await handleFile(file);
+
+const extractedText =
+  fileResult?.text || "";
 
           const summaryPrompt = [
             {
@@ -385,7 +388,7 @@ if (
     usedModel:
       "video-tool",
   });
-}
+  }
 }
     
     // =========================

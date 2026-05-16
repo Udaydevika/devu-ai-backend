@@ -69,8 +69,31 @@ app.use(express.urlencoded({
 }));
 app.use(rateLimiter);
 app.set("trust proxy", 1);
-app.use(express.static("public"));
-app.use("/generated", express.static("public/generated"));
+// ====================================
+// 📂 STATIC FILES
+// Images / Videos / Audio / PDFs
+// ====================================
+
+const publicPath = path.join(
+  process.cwd(),
+  "public"
+);
+
+const generatedPath = path.join(
+  publicPath,
+  "generated"
+);
+
+// Serve all public files
+app.use(
+  express.static(publicPath)
+);
+
+// Serve generated AI files
+app.use(
+  "/generated",
+  express.static(generatedPath)
+);
 // ====================================
 // 🟢 HEALTH CHECK ROUTE
 // ====================================

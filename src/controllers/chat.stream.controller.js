@@ -723,7 +723,7 @@ if (tool === "search") {
 // ======================================
 
 const stream =
-  await streamGroq(messages);
+  await streamGemini(messages);
 
 let hasResponse = false;
 

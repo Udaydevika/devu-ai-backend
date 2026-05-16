@@ -117,7 +117,7 @@ export async function handleVideo(file, userPrompt = "") {
 
 return {
   type: "video",
-  url,
+  url: videoUrl,
   text: "🎬 Reel created.",
 };
       }
