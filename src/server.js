@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import fs from "fs";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -71,7 +72,6 @@ app.use(rateLimiter);
 app.set("trust proxy", 1);
 // ====================================
 // 📂 STATIC FILES
-// Images / Videos / Audio / PDFs
 // ====================================
 
 const publicPath = path.join(
@@ -84,7 +84,25 @@ const generatedPath = path.join(
   "generated"
 );
 
-// Serve all public files
+const uploadsPath = path.join(
+  process.cwd(),
+  "uploads"
+);
+
+// Create folders automatically
+if (!fs.existsSync(publicPath)) {
+  fs.mkdirSync(publicPath);
+}
+
+if (!fs.existsSync(generatedPath)) {
+  fs.mkdirSync(generatedPath);
+}
+
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath);
+}
+
+// Serve public files
 app.use(
   express.static(publicPath)
 );
@@ -93,6 +111,12 @@ app.use(
 app.use(
   "/generated",
   express.static(generatedPath)
+);
+
+// Serve uploaded files
+app.use(
+  "/uploads",
+  express.static(uploadsPath)
 );
 // ====================================
 // 🟢 HEALTH CHECK ROUTE

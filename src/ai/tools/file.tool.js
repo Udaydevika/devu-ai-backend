@@ -1,5 +1,6 @@
 // src/ai/tools/file.tool.js
 
+import fs from "fs";
 import { createRequire } from "module";
 import mammoth from "mammoth";
 
@@ -12,40 +13,38 @@ const pdfParse = require("pdf-parse");
 /**
  * ==========================================
  * 🔥 DevU AI FINAL FILE TOOL
- *
- * Features:
- * ✅ PDF support
- * ✅ DOCX support
- * ✅ TXT / CSV / JSON / MD
- * ✅ Resume detection
- * ✅ Structured response format
- * ✅ Render safe
  * ==========================================
  */
 
 export async function handleFile(file) {
+
   try {
+
     // ======================================
     // VALIDATE
     // ======================================
-    if (!file || !file.buffer) {
+    if (!file || !file.path) {
+
       return {
         type: "text",
         text: "⚠️ No file uploaded.",
       };
     }
 
+    // ======================================
+    // READ FILE
+    // ======================================
+    const buffer = fs.readFileSync(
+      file.path
+    );
+
     let text = "";
 
     const mime =
-      file.mimeType ||
-      file.mimetype ||
-      "";
+      file.mimetype || "";
 
     const name = String(
-      file.name ||
-      file.originalname ||
-      "document"
+      file.originalname || "document"
     ).toLowerCase();
 
     // ======================================
@@ -55,8 +54,9 @@ export async function handleFile(file) {
       mime.includes("pdf") ||
       name.endsWith(".pdf")
     ) {
+
       const data =
-        await pdfParse(file.buffer);
+        await pdfParse(buffer);
 
       text =
         data?.text || "";
@@ -70,9 +70,10 @@ export async function handleFile(file) {
       mime.includes("officedocument") ||
       name.endsWith(".docx")
     ) {
+
       const data =
         await mammoth.extractRawText({
-          buffer: file.buffer,
+          buffer,
         });
 
       text =
@@ -91,16 +92,18 @@ export async function handleFile(file) {
       name.endsWith(".json") ||
       name.endsWith(".md")
     ) {
+
       text =
-        file.buffer.toString("utf8");
+        buffer.toString("utf8");
     }
 
     // ======================================
     // FALLBACK
     // ======================================
     else {
+
       text =
-        file.buffer.toString("utf8");
+        buffer.toString("utf8");
     }
 
     // ======================================
@@ -117,9 +120,11 @@ export async function handleFile(file) {
     // EMPTY CHECK
     // ======================================
     if (!text) {
+
       return {
         type: "text",
-        text: "⚠️ No readable text found in file.",
+        text:
+          "⚠️ No readable text found in file.",
       };
     }
 
@@ -147,24 +152,38 @@ export async function handleFile(file) {
       );
 
     // ======================================
-    // FINAL STRUCTURED RESPONSE
+    // FINAL RESPONSE
     // ======================================
     return {
+
       type: "file",
+
       fileName: name,
+
+      mimeType: mime,
+
+      size: file.size,
+
+      path: file.path,
+
       isResume,
+
       text: preview,
     };
 
   } catch (err) {
+
     console.error(
       "❌ File Tool Error:",
       err.message
     );
 
     return {
+
       type: "text",
-      text: "⚠️ Failed to process file.",
+
+      text:
+        "⚠️ Failed to process file.",
     };
   }
 }

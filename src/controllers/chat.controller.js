@@ -1,3 +1,4 @@
+import fs from "fs";
 import { streamOpenRouter } from "../services/openrouter.service.js";
 import { streamGemini } from "../services/gemini.service.js";
 import { streamGroq } from "../services/groq.service.js";
@@ -147,7 +148,7 @@ export async function chatController(req, res) {
 
 if (
   files.length > 0 &&
-  files[0]?.mimetype?.startsWith("image/")
+  files[0]?.mimeType?.startsWith("image/")
 ) {
 
   try {
@@ -212,17 +213,22 @@ Explain:
 - important details
 `;
 
-    const stream =
-      await streamGemini(
-        [
-          {
-            role: "user",
-            content: ask,
-          },
-        ],
-        file.buffer,
-        file.mimetype
-      );
+    const imageBuffer =
+  fs.readFileSync(
+    file.path
+  );
+
+const stream =
+  await streamGemini(
+    [
+      {
+        role: "user",
+        content: ask,
+      },
+    ],
+    imageBuffer,
+    file.mimetype
+  );
 
     let fullResponse = "";
 
@@ -410,11 +416,26 @@ if (
     // =========================
     // MEMORY
     // =========================
-    if (
-      userId &&
-      !isTemporaryChat &&
-      lastText
-    ) {
+    
+ const sensitivePatterns = [
+  "password",
+  "otp",
+  "api key",
+  "credit card",
+];
+
+const isSensitive =
+  sensitivePatterns.some((s) =>
+    lastText.toLowerCase().includes(s)
+  );
+
+if (
+  userId &&
+  !isTemporaryChat &&
+  lastText &&
+  !isSensitive
+) {
+      
       extractAndStoreMemory(
         userId,
         lastText

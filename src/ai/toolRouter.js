@@ -2,130 +2,237 @@
 
 /**
  * ==========================================
- * 🔥 DevU AI CREATOR MODE PRO TOOL ROUTER
- *
- * Auto Detects:
- * ✅ Image Generation / Variations / Edit / Animate
- * ✅ OCR / Vision
- * ✅ Video Processing
- * ✅ Audio / Voice / Song
- * ✅ Documents (PDF/DOCX/TXT)
- * ✅ Resume Builder
- * ✅ PDF Generator
- * ✅ News / Search
- * ✅ Chat fallback
+ * 🔥 DevU AI ULTIMATE TOOL ROUTER
  * ==========================================
  */
 
-export function detectTool(message = "", files = []) {
-  const text = String(message || "").toLowerCase().trim();
+export function detectTool(
+  message = "",
+  files = []
+) {
+
+  const text = String(
+    message || ""
+  ).toLowerCase().trim();
 
   // =====================================================
-  // FILE MODE (HIGH PRIORITY)
+  // URL DETECTION
   // =====================================================
-  if (Array.isArray(files) && files.length > 0) {
-    const file = files[0] || {};
 
-    const mime = String(file.mimeType || file.mimetype || "").toLowerCase();
-    const name = String(file.name || file.originalname || "").toLowerCase();
+  if (
+    text.includes("youtube.com") ||
+    text.includes("youtu.be")
+  ) {
+    return "youtube";
+  }
 
-    // ================= IMAGE FILE =================
+  if (
+    text.includes("http://") ||
+    text.includes("https://")
+  ) {
+    return "web";
+  }
+
+  // =====================================================
+  // FILE MODE
+  // =====================================================
+
+  if (
+    Array.isArray(files) &&
+    files.length > 0
+  ) {
+
+    const file =
+      files[0] || {};
+
+    const mime = String(
+      file.mimeType ||
+      file.mimetype ||
+      ""
+    ).toLowerCase();
+
+    const name = String(
+      file.name ||
+      file.originalname ||
+      ""
+    ).toLowerCase();
+
+    // =================================================
+    // IMAGE
+    // =================================================
+
     if (
       mime.startsWith("image/") ||
-      endsWithAny(name, [".png", ".jpg", ".jpeg", ".webp"])
+      endsWithAny(name, [
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+      ])
     ) {
-      // 🎨 Variations
-      if (hasAny(text, ["variation", "variations"])) {
-        return "image_variation";
-      }
 
-      // 🖼️ Edit image
-      if (
-        hasAny(text, [
-          "edit",
-          "remove background",
-          "change background",
-          "enhance",
-          "fix image",
-        ])
-      ) {
-        return "image_edit";
-      }
-
-      // 🎬 Animate image
-      if (
-        hasAny(text, [
-          "animate",
-          "image to video",
-          "make video",
-          "convert to video",
-        ])
-      ) {
-        return "image_video";
-      }
-
-      // 🎨 Ghibli style
-      if (
-        hasAny(text, [
-          "ghibli",
-          "anime",
-          "cartoon",
-          "pixar",
-          "turn into anime",
-        ])
-      ) {
-        return "ghibli";
-      }
-
-      // 📄 OCR
+      // OCR / Scan
       if (
         hasAny(text, [
           "ocr",
           "scan",
           "extract text",
           "read text",
-          "document",
           "receipt",
+          "bill",
+          "document",
+          "id card",
+          "notes",
+          "handwriting",
         ])
       ) {
         return "ocr";
       }
 
+      // Camera AI
+      if (
+        hasAny(text, [
+          "what is this",
+          "identify",
+          "camera",
+          "object",
+          "analyze image",
+          "describe image",
+        ])
+      ) {
+        return "vision";
+      }
+
+      // Image Edit
+      if (
+        hasAny(text, [
+          "edit",
+          "remove background",
+          "enhance",
+          "fix image",
+          "change background",
+        ])
+      ) {
+        return "image_edit";
+      }
+
+      // Animate
+      if (
+        hasAny(text, [
+          "animate",
+          "image to video",
+          "make video",
+        ])
+      ) {
+        return "image_video";
+      }
+
+      // Anime / Ghibli
+      if (
+        hasAny(text, [
+          "ghibli",
+          "anime",
+          "pixar",
+          "cartoon",
+        ])
+      ) {
+        return "ghibli";
+      }
+
       return "vision";
     }
 
-    // ================= VIDEO FILE =================
+    // =================================================
+    // VIDEO
+    // =================================================
+
     if (
       mime.startsWith("video/") ||
-      endsWithAny(name, [".mp4", ".mov", ".avi", ".mkv", ".webm"])
+      endsWithAny(name, [
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".webm",
+      ])
     ) {
+
       return "video";
     }
 
-    // ================= AUDIO FILE =================
+    // =================================================
+    // AUDIO
+    // =================================================
+
     if (
       mime.startsWith("audio/") ||
-      endsWithAny(name, [".mp3", ".wav", ".m4a", ".aac", ".ogg"])
+      endsWithAny(name, [
+        ".mp3",
+        ".wav",
+        ".aac",
+        ".m4a",
+        ".ogg",
+      ])
     ) {
+
       return "audio";
     }
 
-    // ================= DOCUMENT FILE =================
+    // =================================================
+    // CODE FILES
+    // =================================================
+
+    if (
+      endsWithAny(name, [
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".dart",
+        ".py",
+        ".java",
+        ".cpp",
+        ".c",
+        ".json",
+      ])
+    ) {
+
+      return "code";
+    }
+
+    // =================================================
+    // EXCEL / SHEETS
+    // =================================================
+
+    if (
+      mime.includes("sheet") ||
+      mime.includes("excel") ||
+      endsWithAny(name, [
+        ".xlsx",
+        ".xls",
+        ".csv",
+      ])
+    ) {
+
+      return "spreadsheet";
+    }
+
+    // =================================================
+    // DOCUMENTS
+    // =================================================
+
     if (
       mime.includes("pdf") ||
       mime.includes("word") ||
       mime.includes("text") ||
-      mime.includes("csv") ||
-      mime.includes("json") ||
       endsWithAny(name, [
         ".pdf",
         ".docx",
         ".txt",
-        ".csv",
-        ".json",
         ".md",
       ])
     ) {
+
       return "file";
     }
 
@@ -136,43 +243,7 @@ export function detectTool(message = "", files = []) {
   // TEXT MODE
   // =====================================================
 
-  // 🎨 Image Variations
-  if (
-    hasAny(text, [
-      "variations",
-      "multiple images",
-      "different versions",
-      "3 versions",
-    ])
-  ) {
-    return "image_variation";
-  }
-
-  // 🖼️ Image Edit
-  if (
-    hasAny(text, [
-      "edit image",
-      "remove background",
-      "change background",
-      "enhance image",
-      "fix image",
-    ])
-  ) {
-    return "image_edit";
-  }
-
-  // 🎬 Image → Video
-  if (
-    hasAny(text, [
-      "animate image",
-      "image to video",
-      "make video from image",
-    ])
-  ) {
-    return "image_video";
-  }
-
-  // 🎨 Image Generation
+  // Image Generation
   if (
     hasAny(text, [
       "generate image",
@@ -180,73 +251,63 @@ export function detectTool(message = "", files = []) {
       "draw",
       "logo",
       "poster",
-      "thumbnail",
       "wallpaper",
-      "ghibli",
-      "anime art",
     ])
   ) {
     return "image";
   }
 
-  // 🎧 Audio / Song
-  if (
-    hasAny(text, [
-      "song",
-      "music",
-      "mp3",
-      "play song",
-      "download song",
-      "voice note",
-      "speech to text",
-    ])
-  ) {
-    return "audio";
-  }
-
-  // 🎬 Video
-  if (
-    hasAny(text, [
-      "edit video",
-      "make reel",
-      "shorts",
-      "highlight video",
-    ])
-  ) {
-    return "video";
-  }
-
-  // 📄 Resume
+  // Resume
   if (
     hasAny(text, [
       "resume",
       "cv",
-      "make resume",
       "ats resume",
     ])
   ) {
     return "resume";
   }
 
-  // 📄 PDF
+  // PDF
   if (
     hasAny(text, [
       "make pdf",
       "export pdf",
-      "convert to pdf",
     ])
   ) {
     return "pdf";
   }
 
-  // 🔎 Search
+  // Audio
+  if (
+    hasAny(text, [
+      "speech",
+      "voice",
+      "song",
+      "music",
+    ])
+  ) {
+    return "audio";
+  }
+
+  // Video
+  if (
+    hasAny(text, [
+      "reel",
+      "shorts",
+      "video",
+    ])
+  ) {
+    return "video";
+  }
+
+  // Search
   if (
     hasAny(text, [
       "news",
       "latest",
       "search",
       "find",
-      "market update",
     ])
   ) {
     return "search";
@@ -260,9 +321,16 @@ export function detectTool(message = "", files = []) {
 // =====================================================
 
 function hasAny(text, arr = []) {
-  return arr.some((w) => text.includes(w));
+  return arr.some((w) =>
+    text.includes(w)
+  );
 }
 
-function endsWithAny(name, arr = []) {
-  return arr.some((ext) => name.endsWith(ext));
+function endsWithAny(
+  name,
+  arr = []
+) {
+  return arr.some((ext) =>
+    name.endsWith(ext)
+  );
 }

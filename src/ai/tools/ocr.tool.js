@@ -1,16 +1,12 @@
-import { streamGemini }
-from "../../services/gemini.service.js";
+import fs from "fs";
+
+import {
+  streamGemini
+} from "../../services/gemini.service.js";
 
 /**
  * ==========================================
  * 📄 DEVU AI OCR TOOL
- * ==========================================
- * Supports:
- * ✅ Camera scanned docs
- * ✅ Handwritten notes
- * ✅ Receipts / Bills
- * ✅ Screenshot text
- * ✅ ID cards / forms
  * ==========================================
  */
 
@@ -27,14 +23,24 @@ export async function handleOCR(
 
     if (
       !file ||
-      !file.buffer
+      !file.path
     ) {
 
       return {
         type: "text",
-        text: "⚠️ No image uploaded.",
+        text:
+          "⚠️ No image uploaded.",
       };
     }
+
+    // =====================================
+    // READ IMAGE
+    // =====================================
+
+    const imageBuffer =
+      fs.readFileSync(
+        file.path
+      );
 
     // =====================================
     // OCR PROMPT
@@ -42,15 +48,14 @@ export async function handleOCR(
 
     const ask =
       prompt?.trim() ||
-`
-Extract all readable text from this image clearly.
+
+`Extract all readable text from this image clearly.
 
 Preserve:
 - headings
 - tables
 - numbers
-- formatting
-`;
+- formatting`;
 
     const messages = [
       {
@@ -65,9 +70,11 @@ Preserve:
 
     const stream =
       await streamGemini(
+
         messages,
-        file.buffer,
-        file.mimeType ||
+
+        imageBuffer,
+
         file.mimetype ||
         "image/jpeg"
       );
@@ -102,8 +109,17 @@ Preserve:
     // =====================================
 
     return {
-      type: "text",
+
+      type: "ocr",
+
+      fileName:
+        file.originalname,
+
+      mimeType:
+        file.mimetype,
+
       text:
+
 `📄 OCR Complete
 
 📝 Extracted Text:
@@ -125,7 +141,9 @@ ${output}
     );
 
     return {
+
       type: "text",
+
       text:
         "⚠️ Failed to read image text.",
     };

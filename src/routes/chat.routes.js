@@ -1,5 +1,5 @@
 import express from "express";
-import multer from "multer";
+import { upload } from "../middlewares/upload.middleware.js";
 
 import { chatController } from "../controllers/chat.controller.js";
 import { chatStreamController } from "../controllers/chat.stream.controller.js";
@@ -9,19 +9,7 @@ import { freeChatLimiter } from "../middlewares/freeChatLimiter.js";
 
 const router = express.Router();
 
-/**
- * =========================
- * 📁 MULTER CONFIG
- * Memory storage = best for AI image upload
- * =========================
- */
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB
-    files: 10,
-  },
-});
+
 
 /**
  * =========================
@@ -54,6 +42,9 @@ router.post(
     req.isTemporaryChat = true;
     next();
   },
+
+  upload.array("files", 10),
+
   chatController
 );
 
@@ -68,6 +59,8 @@ router.post(
   "/chat/stream",
   ensureUser,
   freeChatLimiter,
+
+  upload.array("files", 10),
 
   (req, res, next) => {
     upload.array("files", 10)(
