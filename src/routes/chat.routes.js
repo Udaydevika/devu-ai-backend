@@ -62,24 +62,6 @@ router.post(
 
   upload.array("files", 10),
 
-  (req, res, next) => {
-    upload.array("files", 10)(
-      req,
-      res,
-      function (err) {
-        if (err) {
-          return res.status(400).json({
-            error:
-              "Upload failed. File too large or invalid.",
-          });
-        }
-
-        next();
-      }
-    );
-  },
-
   ...chatStreamController
 );
-
 export default router;

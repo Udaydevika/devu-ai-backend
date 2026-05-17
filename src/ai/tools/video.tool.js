@@ -39,19 +39,23 @@ export async function handleVideo(file, userPrompt = "") {
   let tempPath = "";
 
   try {
-    if (!file?.buffer) {
+    if (!file?.buffer && !file?.path) {
       return {
   type: "text",
   text: "⚠️ No video file found.",
 };
     }
+    
+    const videoBuffer =
+  file.buffer ||
+  fs.readFileSync(file.path);
 
     ensureDir();
 
     const ext = path.extname(file.originalname || "") || ".mp4";
     const prompt = String(userPrompt || "").toLowerCase().trim();
 
-    const sizeMB = file.buffer.length / 1024 / 1024;
+    const sizeMB = videoBuffer.length / 1024 / 1024;
     if (sizeMB > 25) {
       return {
   type: "text",
@@ -62,7 +66,7 @@ export async function handleVideo(file, userPrompt = "") {
 
     // temp file (for FFmpeg tools)
     tempPath = path.join(os.tmpdir(), `devu_${Date.now()}${ext}`);
-    fs.writeFileSync(tempPath, file.buffer);
+    fs.writeFileSync(tempPath, videoBuffer);
 
     // =====================================================
     // MODE 1 — VIRAL / CAPTION REEL
@@ -75,7 +79,7 @@ export async function handleVideo(file, userPrompt = "") {
       prompt.includes("instagram")
     ) {
       try {
-        const reel = await trimVideo(file.buffer, {
+        const reel = await trimVideo(videoBuffer, {
           duration: 30,
           startAt: 0,
           ext,
@@ -103,7 +107,7 @@ export async function handleVideo(file, userPrompt = "") {
       } catch (e) {
         console.error("Viral mode fallback:", e.message);
         // fallback: just return simple clip
-        const fallback = await trimVideo(file.buffer, {
+        const fallback = await trimVideo(videoBuffer, {
           duration: 30,
           startAt: 0,
           ext,
@@ -165,7 +169,7 @@ return {
 
         const startAt = scores[0].index * 10;
 
-        const reel = await trimVideo(file.buffer, {
+        const reel = await trimVideo(videoBuffer, {
           duration: 30,
           startAt,
           ext,
@@ -186,7 +190,7 @@ return {
 };
       } catch (e) {
         console.error("Highlight fallback:", e.message);
-        const fallback = await trimVideo(file.buffer, {
+        const fallback = await trimVideo(videoBuffer, {
           duration: 30,
           startAt: 0,
           ext,
@@ -214,7 +218,7 @@ return {
       prompt.includes("30") ||
       prompt.includes("reel")
     ) {
-      const reel = await trimVideo(file.buffer, {
+      const reel = await trimVideo(videoBuffer, {
         duration: 30,
         startAt: 0,
         ext,
@@ -242,7 +246,7 @@ return {
     if (!frames || frames.length === 0) {
       // fallback: at least return original video so UI works
       const fileName = `video_${Date.now()}${ext}`;
-      const url = saveBuffer(file.buffer, fileName);
+      const url = saveBuffer(videoBuffer, fileName);
       return {
         type: "video",
         url,

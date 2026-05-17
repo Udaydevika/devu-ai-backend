@@ -146,10 +146,7 @@ export async function chatController(req, res) {
 // 🔥 CAMERA + IMAGE ANALYSIS
 // =========================
 
-if (
-  files.length > 0 &&
-  files[0]?.mimeType?.startsWith("image/")
-) {
+if ((files[0]?.mimeType || files[0]?.mimetype || "").startsWith("image/")) {
 
   try {
 

@@ -1,5 +1,5 @@
 // src/controllers/chat.stream.controller.js
-
+import fs from "fs";
 import { streamGemini } from "../services/gemini.service.js";
 
 import { detectTool } from "../ai/toolRouter.js";
@@ -165,28 +165,21 @@ export const chatStreamController = [
       // NORMALIZE FILES
       // ======================================
 
-      const files =
-  rawFiles.map((f) => ({
+    const files = rawFiles.map((f) => ({
+  name: f.originalname,
 
-    name:
-      f.originalname,
+  originalname: f.originalname,
 
-    originalname:
-      f.originalname,
+  mimetype: f.mimetype,
 
-    mimetype:
-      f.mimetype,
+  mimeType: f.mimetype,
 
-    mimeType:
-      f.mimetype,
+  path: f.path,
 
-    path:
-      f.path,
+  size: f.size,
 
-    size:
-      f.size,
-  }));
-
+  buffer: fs.readFileSync(f.path), // 🔥 VERY IMPORTANT
+}));
       const file =
         files[0];
 

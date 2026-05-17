@@ -30,7 +30,7 @@ export async function handleAudio(
     // ======================================
     // VALIDATE
     // ======================================
-    if (!file?.buffer) {
+    if (!file?.buffer && !file?.path) {
       return {
         type: "text",
         text: "⚠️ No audio file found.",
@@ -56,10 +56,14 @@ export async function handleAudio(
       `devu_${Date.now()}${ext}`
     );
 
-    fs.writeFileSync(
-      tempPath,
-      file.buffer
-    );
+    const audioBuffer =
+  file.buffer ||
+  fs.readFileSync(file.path);
+
+fs.writeFileSync(
+  tempPath,
+  audioBuffer
+);
 
     // ======================================
     // SAVE PUBLIC AUDIO
@@ -85,9 +89,9 @@ export async function handleAudio(
     );
 
     fs.writeFileSync(
-      finalPath,
-      file.buffer
-    );
+  finalPath,
+  audioBuffer
+);
 
     const fileUrl =
       `${process.env.PUBLIC_URL}/generated/${fileName}`;
