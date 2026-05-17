@@ -23,7 +23,7 @@ export async function handleFile(file) {
     // ======================================
     // VALIDATE
     // ======================================
-    if (!file || !file.path) {
+    if (!file || (!file.buffer && !file.path)) {
 
       return {
         type: "text",
@@ -34,7 +34,7 @@ export async function handleFile(file) {
     // ======================================
     // READ FILE
     // ======================================
-    const buffer = fs.readFileSync(
+    const buffer = file.buffer || fs.readFileSync(
       file.path
     );
 
