@@ -80,7 +80,6 @@ export function detectTool(
           "read text",
           "receipt",
           "bill",
-          "document",
           "id card",
           "notes",
           "handwriting",
@@ -260,21 +259,39 @@ export function detectTool(
     // =================================================
 
     if (
-      mime.includes("pdf") ||
-      mime.includes("word") ||
-      mime.includes("text") ||
-      endsWithAny(name, [
-        ".pdf",
-        ".docx",
-        ".txt",
-        ".md",
-      ])
-    ) {
 
-      return "file";
-    }
+mime.includes("pdf") ||
 
-    return "file";
+mime.includes("word") ||
+
+mime.includes("officedocument") ||
+
+mime.includes("document") ||
+
+mime.includes("sheet") ||
+
+mime.includes("excel") ||
+
+mime.includes("csv") ||
+
+mime.includes("json") ||
+
+name.endsWith(".pdf") ||
+
+name.endsWith(".docx") ||
+
+name.endsWith(".txt") ||
+
+name.endsWith(".md") ||
+
+name.endsWith(".csv") ||
+
+name.endsWith(".json")
+
+) {
+
+return "file";
+}
   }
 
   // =====================================================

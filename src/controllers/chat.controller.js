@@ -1,3 +1,4 @@
+import fs from "fs";
 import { streamOpenRouter } from "../services/openrouter.service.js";
 import { streamGemini } from "../services/gemini.service.js";
 import { streamGroq } from "../services/groq.service.js";
@@ -98,6 +99,15 @@ export async function chatController(req, res) {
     const files = req.files || []; // ✅ IMPORTANT
 
     console.log(
+  "📦 STREAM FILES:",
+  files.map((f) => ({
+    name: f.originalname,
+    mime: f.mimetype,
+    size: f.size,
+  }))
+);
+
+    console.log(
   "📦 FILES:",
   files.map((f) => ({
     name: f.originalname,
@@ -143,6 +153,7 @@ export async function chatController(req, res) {
     const lastText =
       lastUserMessage?.content || "";
 
+
     // =========================
     // TOOL DETECTION
     // =========================
@@ -154,11 +165,21 @@ export async function chatController(req, res) {
 // 🔥 CAMERA + IMAGE ANALYSIS
 // =========================
 
-if ((files[0]?.mimeType || files[0]?.mimetype || "").startsWith("image/")) {
+const file = files?.[0];
+
+if (
+file?.mimetype?.startsWith("image/")
+) {
 
   try {
 
-    const file = files[0];
+    if (!file) {
+
+  return res.status(400).json({
+type: "text",
+text: "⚠️ No file uploaded.",
+});
+}
 
     // ✅ DECLARE ONLY ONCE
     const lower =
@@ -219,10 +240,11 @@ Explain:
 `;
 
     const imageBuffer =
-
   file.buffer ||
 
-  null;
+  (file.path
+    ? fs.readFileSync(file.path)
+    : null);
 
 if (!imageBuffer) {
 
@@ -285,6 +307,14 @@ const stream =
     if (files.length > 0) {
       const file = files[0];
 
+      if (!file) {
+
+  return res.status(400).json({
+type: "text",
+text: "⚠️ No file uploaded.",
+});
+}
+
       // 🎧 AUDIO
 if (
 
@@ -330,13 +360,13 @@ if (
 
         // 📄 PDF / DOCX / TXT
         if (
-          file.mimetype === "application/pdf" ||
-          file.mimetype.includes("text") ||
-          file.mimetype.includes("csv") ||
-          file.mimetype.includes("json") ||
-          file.mimetype.includes("excel")||
-          file.mimetype.includes("sheet") ||
-          file.mimetype.includes("document") ||
+          file.mimetype?.includes("pdf") ||
+          file.mimetype?.includes("text") ||
+          file.mimetype?.includes("csv") ||
+          file.mimetype?.includes("json") ||
+          file.mimetype?.includes("excel")||
+          file.mimetype?.includes("sheet") ||
+          file.mimetype?.includes("document") ||
           file.originalname?.toLowerCase().endsWith(".docx") ||
           file.originalname?.toLowerCase().endsWith(".txt") 
         ) {
