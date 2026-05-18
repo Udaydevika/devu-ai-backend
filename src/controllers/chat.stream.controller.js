@@ -221,11 +221,9 @@ export const chatStreamController = [
 ).toLowerCase();
 
         console.log(
-          "📂 FILE:",
-          file.name,
-          mime
-        );
-
+  "📦 FINAL MIME:",
+  mime
+);
         // ====================================
         // 🎨 IMAGE VARIATIONS
         // ====================================
@@ -459,7 +457,11 @@ export const chatStreamController = [
 
               lower.includes(
                 "document"
-              )
+              ) ||
+
+               lower.includes(
+    "summarize this document"
+  )
 
             ) {
 
@@ -711,14 +713,12 @@ export const chatStreamController = [
               );
 
             send(
-              res,
-              out?.type ||
-              "text",
+  res,
+  "text",
 
-              out?.text ||
-
-              "⚠️ Failed to process document."
-            );
+  out?.text ||
+  "⚠️ Failed to process document."
+);
 
             return done(
               res,

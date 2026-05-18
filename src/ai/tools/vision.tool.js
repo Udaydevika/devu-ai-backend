@@ -58,6 +58,12 @@ export async function handleVision(
     // GEMINI VISION
     // =====================================
 
+    console.log(
+  "🖼️ Vision file:",
+  file?.name,
+  file?.mimeType
+);
+
     const stream =
       await streamGemini(
         messages,

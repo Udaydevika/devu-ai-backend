@@ -31,7 +31,7 @@ export async function streamGemini(
   // ==========================================
   // 🧠 NORMAL CHAT MODE
   // ==========================================
-  if (!imageBuffer) {
+  if (!imageBuffer || imageBuffer.length === 0) {
     contents = messages.map((m) => {
       let text = "";
 
