@@ -214,11 +214,14 @@ export const chatStreamController = [
 
       if (file) {
 
-       const mime = String(
+      const mime = String(
   file.mimeType ||
   file.mimetype ||
+  file.type ||
   ""
-).toLowerCase();
+)
+.toLowerCase()
+.trim();
 
         console.log(
   "📦 FINAL MIME:",
@@ -482,13 +485,14 @@ export const chatStreamController = [
             }
 
             send(
-              res,
-              result?.type ||
-              "text",
+  res,
+  result?.type || "text",
 
-              result?.text ||
-              result
-            );
+  typeof result === "string"
+    ? result
+    : result?.text ||
+      "⚠️ Empty AI response."
+);
 
             return done(
               res,

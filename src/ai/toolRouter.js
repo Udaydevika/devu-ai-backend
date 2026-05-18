@@ -46,10 +46,13 @@ export function detectTool(
       files[0] || {};
 
     const mime = String(
-      file.mimeType ||
-      file.mimetype ||
-      ""
-    ).toLowerCase();
+  file.mimeType ||
+  file.mimetype ||
+  file.type ||
+  ""
+)
+.toLowerCase()
+.trim();
 
     const name = String(
       file.name ||

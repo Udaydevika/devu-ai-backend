@@ -22,7 +22,7 @@ import { generateImage } from "./image.tool.js";
 
 export async function editImage(file, userPrompt = "") {
   try {
-    if (!file || !file.buffer) {
+    if (!file || (!file.buffer && !file.path)) {
       return "⚠️ No image provided.";
     }
 

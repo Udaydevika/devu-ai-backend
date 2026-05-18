@@ -1,3 +1,5 @@
+// src/middlewares/upload.middleware.js
+
 import fs from "fs";
 import multer from "multer";
 import path from "path";
@@ -40,5 +42,16 @@ export const upload = multer({
       100 * 1024 * 1024,
 
     files: 10,
+  },
+
+  fileFilter: (req, file, cb) => {
+
+    if (!file.mimetype) {
+      return cb(
+        new Error("Invalid file")
+      );
+    }
+
+    cb(null, true);
   },
 });

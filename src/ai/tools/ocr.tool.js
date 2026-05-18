@@ -22,9 +22,9 @@ export async function handleOCR(
     // =====================================
 
     if (
-      !file ||
-      !file.path
-    ) {
+  !file ||
+  (!file.buffer && !file.path)
+) {
 
       return {
         type: "text",
@@ -38,9 +38,8 @@ export async function handleOCR(
     // =====================================
 
     const imageBuffer =
-      fs.readFileSync(
-        file.path
-      );
+  file.buffer ||
+  fs.readFileSync(file.path);
 
     // =====================================
     // OCR PROMPT

@@ -360,16 +360,30 @@ if (
 
         // 📄 PDF / DOCX / TXT
         if (
-          file.mimetype?.includes("pdf") ||
-          file.mimetype?.includes("text") ||
-          file.mimetype?.includes("csv") ||
-          file.mimetype?.includes("json") ||
-          file.mimetype?.includes("excel")||
-          file.mimetype?.includes("sheet") ||
-          file.mimetype?.includes("document") ||
-          file.originalname?.toLowerCase().endsWith(".docx") ||
-          file.originalname?.toLowerCase().endsWith(".txt") 
-        ) {
+
+  file.mimetype?.includes("pdf") ||
+
+  file.mimetype?.includes("text") ||
+
+  file.mimetype?.includes("csv") ||
+
+  file.mimetype?.includes("json") ||
+
+  file.mimetype?.includes("excel") ||
+
+  file.mimetype?.includes("sheet") ||
+
+  file.mimetype?.includes("document") ||
+
+  file.mimetype?.includes("word") ||
+
+  file.originalname?.toLowerCase().endsWith(".docx") ||
+
+  file.originalname?.toLowerCase().endsWith(".txt") ||
+
+  file.originalname?.toLowerCase().endsWith(".pdf")
+
+){
           const fileResult =
   await handleFile(file);
 

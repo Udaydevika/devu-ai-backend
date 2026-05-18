@@ -145,18 +145,37 @@ export async function streamGemini(
   const data =
     await res.json();
 
+    console.log(
+  "🔥 GEMINI RAW:",
+  JSON.stringify(data)
+);
+
   const parts =
     data?.candidates?.[0]
       ?.content?.parts || [];
 
-  const text = parts
-    .map(
-      (p) =>
-        p.text || ""
-    )
+  let text = "";
+
+if (
+  parts &&
+  Array.isArray(parts)
+) {
+
+  text = parts
+    .map((p) => p.text || "")
     .join("")
     .trim();
+}
 
+if (!text) {
+
+  text =
+    data?.candidates?.[0]
+      ?.content?.parts?.[0]
+      ?.text ||
+
+    "⚠️ Gemini returned empty response.";
+}
   // ==========================================
   // 🔥 STREAM TOKENS
   // ==========================================

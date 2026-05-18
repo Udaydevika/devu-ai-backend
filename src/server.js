@@ -61,7 +61,19 @@ mongoose
 // ====================================
 // 🔐 MIDDLEWARE
 // ====================================
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE"
+  ],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization"
+  ],
+}));
 app.use(compression());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({
@@ -126,6 +138,19 @@ app.get("/", (req, res) => {
 });
 
 // ====================================
+// ❤️ KEEP ALIVE
+// ====================================
+
+app.get("/health", (req, res) => {
+
+  res.status(200).json({
+    success: true,
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+  });
+});
+
+// ====================================
 // 🚀 API ROUTES
 // ====================================
 app.use("/api", chatRoutes);
@@ -164,8 +189,18 @@ app.use(errorHandler);
 // ====================================
 // 🚀 SERVER START
 // ====================================
-const PORT = process.env.PORT || 3000;
+const PORT =
+  Number(process.env.PORT) || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 DevU AI Backend running on port ${PORT}`);
+  console.log(`
+🚀 DevU AI Backend running
+
+🌍 PORT: ${PORT}
+
+📂 Public:
+${process.env.PUBLIC_URL || "local"}
+
+✅ Server Ready
+`);
 });

@@ -29,9 +29,9 @@ export async function handleVision(
     // =====================================
 
     if (
-      !file ||
-      !file.buffer
-    ) {
+  !file ||
+  (!file.buffer && !file.path)
+) {
 
       return {
         type: "text",
@@ -64,10 +64,14 @@ export async function handleVision(
   file?.mimeType
 );
 
-    const stream =
-      await streamGemini(
-        messages,
-        file.buffer,
+    const imageBuffer =
+  file.buffer ||
+  fs.readFileSync(file.path);
+
+const stream =
+  await streamGemini(
+    messages,
+    imageBuffer,
         file.mimeType ||
         file.mimetype ||
         "image/jpeg"
