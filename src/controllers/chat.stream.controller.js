@@ -214,8 +214,11 @@ export const chatStreamController = [
 
       if (file) {
 
-        const mime =
-          file.mimeType || "";
+       const mime = String(
+  file.mimeType ||
+  file.mimetype ||
+  ""
+).toLowerCase();
 
         console.log(
           "📂 FILE:",
@@ -510,6 +513,71 @@ export const chatStreamController = [
           }
         }
 
+        
+
+        // ====================================
+        // 🎧 AUDIO
+        // ====================================
+
+        else if (
+          mime.startsWith(
+            "audio/"
+          )
+        ) {
+
+          try {
+
+            const out =
+              await handleAudio(
+                file,
+                prompt
+              );
+
+            if (
+              out?.transcript
+            ) {
+
+              send(
+                res,
+                "text",
+                out.transcript
+              );
+
+            } else {
+
+              send(
+                res,
+                "text",
+                out?.text ||
+                "⚠️ Audio processing failed."
+              );
+            }
+
+            return done(
+              res,
+              ping
+            );
+
+          } catch (err) {
+
+            console.error(
+              "AUDIO ERROR:",
+              err
+            );
+
+            send(
+              res,
+              "text",
+              "⚠️ Failed to process audio."
+            );
+
+            return done(
+              res,
+              ping
+            );
+          }
+        }
+
         // ====================================
         // 🎬 VIDEO
         // ====================================
@@ -586,69 +654,6 @@ export const chatStreamController = [
               res,
               "text",
               "⚠️ Failed to process video."
-            );
-
-            return done(
-              res,
-              ping
-            );
-          }
-        }
-
-        // ====================================
-        // 🎧 AUDIO
-        // ====================================
-
-        else if (
-          mime.startsWith(
-            "audio/"
-          )
-        ) {
-
-          try {
-
-            const out =
-              await handleAudio(
-                file,
-                prompt
-              );
-
-            if (
-              out?.transcript
-            ) {
-
-              send(
-                res,
-                "text",
-                out.transcript
-              );
-
-            } else {
-
-              send(
-                res,
-                "text",
-                out?.text ||
-                "⚠️ Audio processing failed."
-              );
-            }
-
-            return done(
-              res,
-              ping
-            );
-
-          } catch (err) {
-
-            console.error(
-              "AUDIO ERROR:",
-              err
-            );
-
-            send(
-              res,
-              "text",
-              "⚠️ Failed to process audio."
             );
 
             return done(
@@ -845,18 +850,34 @@ export const chatStreamController = [
       // ======================================
 
       const stream =
-        await streamGemini(
-          messages
-        );
+  await streamGemini(
+    Array.isArray(messages)
+      ? messages
+      : []
+  );
 
       let hasResponse =
         false;
 
       let chunk = "";
 
-      for await (
-        const t of stream
-      ) {
+      if (!stream) {
+
+  send(
+    res,
+    "text",
+    "⚠️ AI stream failed."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
+
+for await (
+  const t of stream
+) {
 
         if (!t) continue;
 
@@ -864,7 +885,7 @@ export const chatStreamController = [
           true;
 
         chunk +=
-          t.toString();
+  String(t || "");
 
         // smoother streaming
         if (
@@ -911,8 +932,9 @@ export const chatStreamController = [
     } catch (err) {
 
       console.error(
-        err
-      );
+  "STREAM ERROR:",
+  err?.message || err
+);
 
       send(
         res,

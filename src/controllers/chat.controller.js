@@ -1,4 +1,3 @@
-import fs from "fs";
 import { streamOpenRouter } from "../services/openrouter.service.js";
 import { streamGemini } from "../services/gemini.service.js";
 import { streamGroq } from "../services/groq.service.js";
@@ -97,6 +96,15 @@ export async function chatController(req, res) {
       req.isTemporaryChat === true;
 
     const files = req.files || []; // ✅ IMPORTANT
+
+    console.log(
+  "📦 FILES:",
+  files.map((f) => ({
+    name: f.originalname,
+    mime: f.mimetype,
+    size: f.size,
+  }))
+);
 
     // =========================
     // VALIDATION
@@ -211,9 +219,19 @@ Explain:
 `;
 
     const imageBuffer =
-  fs.readFileSync(
-    file.path
-  );
+
+  file.buffer ||
+
+  null;
+
+if (!imageBuffer) {
+
+  return res.status(400).json({
+    type: "text",
+    text:
+      "⚠️ Image buffer missing.",
+  });
+}
 
 const stream =
   await streamGemini(
@@ -269,7 +287,21 @@ const stream =
 
       // 🎧 AUDIO
 if (
-  file.mimetype?.startsWith("audio/")
+
+  file.mimetype?.startsWith("audio/") ||
+
+  file.mimetype?.includes("mpeg") ||
+
+  file.mimetype?.includes("mp3") ||
+
+  file.originalname
+    ?.toLowerCase()
+    .endsWith(".mp3") ||
+
+  file.originalname
+    ?.toLowerCase()
+    .endsWith(".m4a")
+
 ) {
 
   const result =
@@ -313,6 +345,14 @@ if (
 
 const extractedText =
   fileResult?.text || "";
+  if (!extractedText) {
+
+  return res.json({
+    type: "text",
+    text:
+      "⚠️ Could not read document.",
+  });
+}
 
           const summaryPrompt = [
             {
@@ -339,7 +379,15 @@ const extractedText =
 
         // 🎬 VIDEO
 if (
-  file.mimetype?.startsWith("video/")
+
+  file.mimetype?.startsWith("video/") ||
+
+  file.mimetype?.includes("mp4") ||
+
+  file.originalname
+    ?.toLowerCase()
+    .endsWith(".mp4")
+
 ) {
 
   const result =
@@ -601,7 +649,8 @@ Make every reply useful, smart, and premium.
         user?.freeChatsLeft ??
         null,
     });
-  }
+    }
+  
   } catch (err) {
     logError(
       "AI_FATAL",

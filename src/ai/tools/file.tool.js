@@ -40,12 +40,17 @@ export async function handleFile(file) {
 
     let text = "";
 
-    const mime =
-      file.mimetype || "";
+    const mime = String(
+  file.mimetype ||
+  file.mimeType ||
+  ""
+).toLowerCase();
 
-    const name = String(
-      file.originalname || "document"
-    ).toLowerCase();
+   const name = String(
+  file.originalname ||
+  file.name ||
+  "document"
+).toLowerCase();
 
     // ======================================
     // PDF
@@ -102,10 +107,17 @@ export async function handleFile(file) {
     // ======================================
     else {
 
-      text =
-        buffer.toString("utf8");
-    }
+  try {
 
+    text =
+      buffer.toString("utf8");
+
+  } catch {
+
+    text =
+      "Unsupported binary file.";
+  }
+}
     // ======================================
     // CLEAN TEXT
     // ======================================

@@ -142,42 +142,80 @@ export function detectTool(
       return "vision";
     }
 
+     // =================================================
+    // AUDIO
+    // =================================================
+
+   if (
+
+  mime.startsWith("audio/") ||
+
+  mime.includes("mpeg") ||
+
+  mime.includes("mp3") ||
+
+  mime.includes("wav") ||
+
+  mime.includes("x-wav") ||
+
+  mime.includes("ogg") ||
+
+  mime.includes("aac") ||
+
+  mime.includes("m4a") ||
+
+  mime.includes("webm") ||
+
+  mime.includes("3gp") ||
+
+  endsWithAny(name, [
+    ".mp3",
+    ".wav",
+    ".aac",
+    ".m4a",
+    ".ogg",
+    ".webm",
+    ".3gp",
+  ])
+
+) {
+
+  return "audio";
+}
+
+
     // =================================================
     // VIDEO
     // =================================================
 
     if (
-      mime.startsWith("video/") ||
-      endsWithAny(name, [
-        ".mp4",
-        ".mov",
-        ".avi",
-        ".mkv",
-        ".webm",
-      ])
-    ) {
 
-      return "video";
-    }
+  mime.startsWith("video/") ||
 
-    // =================================================
-    // AUDIO
-    // =================================================
+  mime.includes("mp4") ||
 
-    if (
-      mime.startsWith("audio/") ||
-      endsWithAny(name, [
-        ".mp3",
-        ".wav",
-        ".aac",
-        ".m4a",
-        ".ogg",
-      ])
-    ) {
+  mime.includes("quicktime") ||
 
-      return "audio";
-    }
+  mime.includes("x-matroska") ||
 
+  mime.includes("webm") ||
+
+  mime.includes("3gpp") ||
+
+  endsWithAny(name, [
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".webm",
+    ".3gp",
+  ])
+
+) {
+
+  return "video";
+}
+   
     // =================================================
     // CODE FILES
     // =================================================
