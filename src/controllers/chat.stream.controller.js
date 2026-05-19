@@ -1,11 +1,10 @@
 // src/controllers/chat.stream.controller.js
 
-import { streamGemini } from "../services/gemini.service.js";
+import { getAIStream } from "../services/aiRouter.service.js";
 
 import { detectTool } from "../ai/toolRouter.js";
 
 import { handleFile } from "../ai/tools/file.tool.js";
-import { handleVideo } from "../ai/tools/video.tool.js";
 import { handleAudio } from "../ai/tools/audio.tool.js";
 import { handleOCR } from "../ai/tools/ocr.tool.js";
 
@@ -23,6 +22,8 @@ import { createPDF } from "../ai/tools/pdf.tool.js";
 import { generateResume } from "../ai/tools/resume.tool.js";
 
 import { handleVision } from "../ai/tools/vision.tool.js";
+import { handleVideo } from "../ai/tools/video.tool.js";
+
 
 // ==========================================
 // SSE HELPERS
@@ -56,14 +57,36 @@ function sendDownload(
 
 function done(res, ping) {
 
-  clearInterval(ping);
+clearInterval(ping);
 
-  res.write("data: [DONE]\n\n");
-
-  return res.end();
+if (
+res.writableEnded
+) {
+return;
 }
 
+try {
+
+res.write(
+  "data: [DONE]\n\n"
+);
+
+res.end();
+
+} catch (err) {
+
+console.error(
+  "DONE ERROR:",
+  err.message
+);
+
+}
+}
+
+
 function startSSE(res) {
+
+  res.flushHeaders?.();
 
   res.writeHead(200, {
     "Content-Type":
@@ -121,6 +144,16 @@ export const chatStreamController = [
 
     const ping =
       startSSE(res);
+
+req.on("close", () => {
+
+  clearInterval(ping);
+
+  console.log(
+    "🔌 Client disconnected"
+  );
+});
+
 
     try {
 
@@ -192,6 +225,24 @@ export const chatStreamController = [
 
       const file =
         files[0];
+
+        if (
+  file &&
+  !file.buffer &&
+  !file.path
+) {
+
+  send(
+    res,
+    "text",
+    "⚠️ Invalid uploaded file."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
 
       // ======================================
       // DETECT TOOL
@@ -298,6 +349,23 @@ export const chatStreamController = [
               );
 
             if (
+              typeof out === "string"
+            ) {
+
+              send(
+                res,
+                "image",
+                out
+              );
+
+              sendDownload(
+                res,
+                "Edited Image",
+                out,
+                "image"
+              );
+
+            } else if (
               out?.url
             ) {
 
@@ -387,9 +455,9 @@ export const chatStreamController = [
             // ==================================
 
             if (
-              tool ===
-              "image"
-            ) {
+  tool ===
+  "image_generation"
+) {
 
               const out =
                 await generateImage(
@@ -711,19 +779,28 @@ export const chatStreamController = [
 
           try {
 
-            const out =
-              await handleFile(
-                file
-              );
+const out =
+  await handleFile(file);
 
-            send(
-  res,
-  "text",
+if (!out?.text) {
 
-  out?.text ||
-  "⚠️ Failed to process document."
-);
+  send(
+    res,
+    "text",
+    "⚠️ Failed to read document."
+  );
 
+} else {
+
+  send(
+    res,
+    "text",
+
+`📄 ${out.fileName || "Document"}
+
+${out.text}`
+  );
+}
             return done(
               res,
               ping
@@ -852,13 +929,17 @@ export const chatStreamController = [
       // ======================================
       // 💬 NORMAL AI CHAT
       // ======================================
+  
+      const {
+  stream,
+  usedModel,
+} = await getAIStream(
+  tool,
+  Array.isArray(messages)
+    ? messages
+    : []
+);
 
-      const stream =
-  await streamGemini(
-    Array.isArray(messages)
-      ? messages
-      : []
-  );
 
       let hasResponse =
         false;
@@ -879,59 +960,109 @@ export const chatStreamController = [
   );
 }
 
-for await (
-  const t of stream
+// ======================================
+// 🔥 STREAM TOKENS
+// ======================================
+
+try {
+
+for await (const tokenRaw of stream) {
+
+if (
+  res.destroyed ||
+  res.writableEnded
+) {
+  break;
+}
+
+const token =
+  String(tokenRaw || "");
+
+if (!token.trim()) {
+  continue;
+}
+
+hasResponse = true;
+
+chunk += token;
+
+if (
+  chunk.length > 120 ||
+  token.includes("\n")
 ) {
 
-        if (!t) continue;
+  send(
+    res,
+    "text",
+    chunk
+  );
 
-        hasResponse =
-          true;
+  chunk = "";
+}
 
-        chunk +=
-  String(t || "");
+}
 
-        // smoother streaming
-        if (
-          chunk.length > 30
-        ) {
+} catch (streamErr) {
 
-          send(
-            res,
-            "text",
-            chunk
-          );
+console.error(
+"STREAM ITERATION ERROR:",
+streamErr
+);
 
-          chunk = "";
-        }
-      }
+if (
+!res.writableEnded
+) {
 
-      // send remaining
-      if (chunk) {
 
-        send(
-          res,
-          "text",
-          chunk
-        );
-      }
+send(
+  res,
+  "text",
+  "⚠️ Stream interrupted."
+);
+}
+}
 
-      // empty response
-      if (
-        !hasResponse
-      ) {
 
-        send(
-          res,
-          "text",
-          "⚠️ AI returned empty response."
-        );
-      }
 
-      return done(
-        res,
-        ping
-      );
+// ======================================
+// SEND REMAINING
+// ======================================
+
+if (chunk.trim()) {
+
+  send(
+    res,
+    "text",
+    chunk
+  );
+}
+
+// ======================================
+// EMPTY RESPONSE
+// ======================================
+
+if (!hasResponse) {
+
+  send(
+    res,
+    "text",
+    "⚠️ AI returned empty response."
+  );
+}
+
+console.log(
+"✅ Stream completed"
+);
+
+if (
+!res.writableEnded
+) {
+
+return done(
+res,
+ping
+);
+}
 
     } catch (err) {
 

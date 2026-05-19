@@ -1,7 +1,7 @@
 export function logEvent(type, data = {}) {
   console.log(
     `[${new Date().toISOString()}] [${type}]`,
-    JSON.stringify(data)
+    JSON.stringify(data).slice(0, 500)
   );
 }
 

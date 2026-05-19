@@ -145,10 +145,7 @@ export async function streamGemini(
   const data =
     await res.json();
 
-    console.log(
-  "🔥 GEMINI RAW:",
-  JSON.stringify(data)
-);
+    console.log("✅ Gemini response received");
 
   const parts =
     data?.candidates?.[0]

@@ -1,6 +1,15 @@
 import Memory from "../models/memory.model.js";
 import { resolveMemoryConflict } from "./memoryConflict.service.js";
 import { logEvent, logError } from "../utils/logger.js";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey:
+    process.env.OPENROUTER_API_KEY,
+
+  baseURL:
+    "https://openrouter.ai/api/v1",
+});
 
 /**
  * 🧠 Extract + Store Memory (FINAL PRODUCTION VERSION)

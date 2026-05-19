@@ -7,6 +7,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import compression from "compression";
 import cron from "node-cron";
+import "./cron.js";
 
 import chatRoutes from "./routes/chat.routes.js";
 import memoryRoutes from "./routes/memory.routes.js";
@@ -62,7 +63,8 @@ mongoose
 // 🔐 MIDDLEWARE
 // ====================================
 app.use(cors({
-  origin: "*",
+  origin: true, 
+  credentials: true,
   methods: [
     "GET",
     "POST",
@@ -82,6 +84,33 @@ app.use(express.urlencoded({
 }));
 app.use(rateLimiter);
 app.set("trust proxy", 1);
+app.use((req, res, next) => {
+
+  console.log(
+    `🌍 ${req.method} ${req.url}`
+  );
+
+  next();
+});
+
+app.use((req, res, next) => {
+
+  req.setTimeout(
+    1000 * 60 * 5
+  );
+
+  res.setTimeout(
+    1000 * 60 * 5
+  );
+
+  next();
+});
+
+// ====================================
+// 🔥 DISABLE X-POWERED-BY
+// ====================================
+
+app.disable("x-powered-by");
 // ====================================
 // 📂 STATIC FILES
 // ====================================
@@ -100,24 +129,30 @@ const uploadsPath = path.join(
   process.cwd(),
   "uploads"
 );
+// ====================================
+// 📂 CREATE FOLDERS SAFE
+// ====================================
 
-// Create folders automatically
-if (!fs.existsSync(publicPath)) {
-  fs.mkdirSync(publicPath);
-}
+[
+  publicPath,
+  generatedPath,
+  uploadsPath,
+].forEach((dir) => {
 
-if (!fs.existsSync(generatedPath)) {
-  fs.mkdirSync(generatedPath);
-}
+  if (!fs.existsSync(dir)) {
 
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath);
-}
+    fs.mkdirSync(dir, {
+      recursive: true,
+    });
+  }
+});
 
 // Serve public files
 app.use(
+  "/public",
   express.static(publicPath)
 );
+
 
 // Serve generated AI files
 app.use(
@@ -138,17 +173,53 @@ app.get("/", (req, res) => {
 });
 
 // ====================================
-// ❤️ KEEP ALIVE
+// ❤️ KEEP ALIVE + DB HEALTH
 // ====================================
 
-app.get("/health", (req, res) => {
+app.get(
+  "/health",
+  async (req, res) => {
 
-  res.status(200).json({
-    success: true,
-    uptime: process.uptime(),
-    timestamp: Date.now(),
-  });
-});
+    try {
+
+      const dbState =
+        mongoose.connection.readyState;
+
+      const dbConnected =
+        dbState === 1;
+
+      return res.status(200).json({
+
+        success: true,
+
+        server: "online",
+
+        database:
+          dbConnected
+            ? "connected"
+            : "disconnected",
+
+        uptime:
+          process.uptime(),
+
+        memory: process.memoryUsage(),
+
+        timestamp:
+          Date.now(),
+      });
+
+    } catch (err) {
+
+      return res.status(500).json({
+
+        success: false,
+
+        error:
+          err.message,
+      });
+    }
+  }
+);
 
 // ====================================
 // 🚀 API ROUTES
@@ -159,18 +230,6 @@ app.use("/api", videoRoutes);
 app.use("/api", audioRoutes);
 app.use("/api", documentRoutes);
 app.use("/api/chats", chatSessionRoutes);
-
-// ====================================
-// 🧠 MEMORY DECAY CRON
-// ====================================
-cron.schedule("0 */6 * * *", async () => {
-  console.log("⏰ Running memory decay job...");
-  try {
-    await decayMemories();
-  } catch (err) {
-    logError("MEMORY_DECAY_ERROR", err);
-  }
-});
 
 // ====================================
 // 🛑 404 ROUTE HANDLER

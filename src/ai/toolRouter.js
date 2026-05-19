@@ -2,7 +2,7 @@
 
 /**
  * ==========================================
- * 🔥 DevU AI ULTIMATE TOOL ROUTER
+ * 🔥 DevU AI FINAL PROFESSIONAL TOOL ROUTER
  * ==========================================
  */
 
@@ -13,11 +13,21 @@ export function detectTool(
 
   const text = String(
     message || ""
-  ).toLowerCase().trim();
+  )
+    .toLowerCase()
+    .trim();
 
-  // =====================================================
-  // URL DETECTION
-  // =====================================================
+  // ==========================================
+  // 🔥 FILE EXISTS
+  // ==========================================
+
+  const hasFiles =
+    Array.isArray(files) &&
+    files.length > 0;
+
+  // ==========================================
+  // 🌐 URL DETECTION
+  // ==========================================
 
   if (
     text.includes("youtube.com") ||
@@ -33,194 +43,279 @@ export function detectTool(
     return "web";
   }
 
-  // =====================================================
-  // FILE MODE
-  // =====================================================
+  // ==========================================
+  // 💻 CODING DETECTION
+  // ==========================================
 
   if (
-    Array.isArray(files) &&
-    files.length > 0
+    hasAny(text, [
+      "flutter",
+      "react",
+      "nextjs",
+      "node",
+      "express",
+      "mongodb",
+      "firebase",
+      "api",
+      "backend",
+      "frontend",
+      "debug",
+      "fix error",
+      "dart",
+      "javascript",
+      "typescript",
+      "python",
+      "java",
+      "cpp",
+      "c++",
+      "compile",
+      "gradle",
+      "build apk",
+      "android studio",
+      "vs code",
+      "code",
+    ])
   ) {
+
+    return "coding";
+  }
+
+  // ==========================================
+  // 📂 FILE MODE
+  // ==========================================
+
+  if (hasFiles) {
 
     const file =
       files[0] || {};
 
     const mime = String(
-  file.mimeType ||
-  file.mimetype ||
-  file.type ||
-  ""
-)
-.toLowerCase()
-.trim();
+
+      file.mimeType ||
+
+      file.mimetype ||
+
+      file.type ||
+
+      ""
+
+    )
+      .toLowerCase()
+      .trim();
 
     const name = String(
-      file.name ||
-      file.originalname ||
-      ""
-    ).toLowerCase();
 
-    // =================================================
-    // IMAGE
-    // =================================================
+      file.name ||
+
+      file.originalname ||
+
+      ""
+
+    )
+      .toLowerCase();
+
+    // ==========================================
+// 🖼️ IMAGE
+// ==========================================
+
+if (
+
+mime.startsWith("image/") ||
+
+endsWithAny(name, [
+".png",
+".jpg",
+".jpeg",
+".webp",
+".gif",
+])
+
+) {
+
+// ======================================
+// OCR
+// ======================================
+
+if (
+hasAny(text, [
+"ocr",
+"extract text",
+"scan",
+"read text",
+"receipt",
+"invoice",
+"notes",
+"handwriting",
+"id card",
+"document scan",
+"screenshot",
+])
+) {
+
+```
+return "ocr";
+```
+
+}
+
+// ======================================
+// IMAGE EDIT
+// ======================================
+
+if (
+hasAny(text, [
+"edit",
+"enhance",
+"remove background",
+"change background",
+"blur",
+"fix image",
+"restore",
+])
+) {
+
+```
+return "image_edit";
+```
+
+}
+
+// ======================================
+// IMAGE VARIATIONS
+// ======================================
+
+if (
+hasAny(text, [
+"variation",
+"variations",
+"similar image",
+"same style",
+"more like this",
+"alternative version",
+"different version",
+"remix image",
+])
+) {
+
+```
+return "image_variation";
+```
+
+}
+
+// ======================================
+// IMAGE TO VIDEO
+// ======================================
+
+if (
+hasAny(text, [
+"animate",
+"image to video",
+"make video",
+"motion",
+])
+) {
+
+```
+return "image_video";
+```
+
+}
+
+// ======================================
+// GHIBLI / ANIME
+// ======================================
+
+if (
+hasAny(text, [
+"ghibli",
+"anime",
+"pixar",
+"cartoon",
+"disney style",
+])
+) {
+
+```
+return "image_generation";
+```
+
+}
+
+// ======================================
+// DEFAULT
+// ======================================
+
+return "vision";
+}
+
+
+    // ==========================================
+    // 🎤 AUDIO
+    // ==========================================
 
     if (
-      mime.startsWith("image/") ||
+
+      mime.startsWith("audio/") ||
+
+      mime.includes("mpeg") ||
+
+      mime.includes("wav") ||
+
+      mime.includes("ogg") ||
+
+      mime.includes("aac") ||
+
+      mime.includes("m4a") ||
+
+      mime.includes("webm") ||
+
       endsWithAny(name, [
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".webp",
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".aac",
+        ".m4a",
+        ".webm",
       ])
+
     ) {
 
-      // OCR / Scan
-      if (
-        hasAny(text, [
-          "ocr",
-          "scan",
-          "extract text",
-          "read text",
-          "receipt",
-          "bill",
-          "id card",
-          "notes",
-          "handwriting",
-        ])
-      ) {
-        return "ocr";
-      }
-
-      // Camera AI
-      if (
-        hasAny(text, [
-          "what is this",
-          "identify",
-          "camera",
-          "object",
-          "analyze image",
-          "describe image",
-        ])
-      ) {
-        return "vision";
-      }
-
-      // Image Edit
-      if (
-        hasAny(text, [
-          "edit",
-          "remove background",
-          "enhance",
-          "fix image",
-          "change background",
-        ])
-      ) {
-        return "image_edit";
-      }
-
-      // Animate
-      if (
-        hasAny(text, [
-          "animate",
-          "image to video",
-          "make video",
-        ])
-      ) {
-        return "image_video";
-      }
-
-      // Anime / Ghibli
-      if (
-        hasAny(text, [
-          "ghibli",
-          "anime",
-          "pixar",
-          "cartoon",
-        ])
-      ) {
-        return "ghibli";
-      }
-
-      return "vision";
+      return "audio";
     }
 
-     // =================================================
-    // AUDIO
-    // =================================================
-
-   if (
-
-  mime.startsWith("audio/") ||
-
-  mime.includes("mpeg") ||
-
-  mime.includes("mp3") ||
-
-  mime.includes("wav") ||
-
-  mime.includes("x-wav") ||
-
-  mime.includes("ogg") ||
-
-  mime.includes("aac") ||
-
-  mime.includes("m4a") ||
-
-  mime.includes("webm") ||
-
-  mime.includes("3gp") ||
-
-  endsWithAny(name, [
-    ".mp3",
-    ".wav",
-    ".aac",
-    ".m4a",
-    ".ogg",
-    ".webm",
-    ".3gp",
-  ])
-
-) {
-
-  return "audio";
-}
-
-
-    // =================================================
-    // VIDEO
-    // =================================================
+    // ==========================================
+    // 🎥 VIDEO
+    // ==========================================
 
     if (
 
-  mime.startsWith("video/") ||
+      mime.startsWith("video/") ||
 
-  mime.includes("mp4") ||
+      mime.includes("mp4") ||
 
-  mime.includes("quicktime") ||
+      mime.includes("quicktime") ||
 
-  mime.includes("x-matroska") ||
+      mime.includes("webm") ||
 
-  mime.includes("webm") ||
+      mime.includes("x-matroska") ||
 
-  mime.includes("3gpp") ||
+      endsWithAny(name, [
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".webm",
+      ])
 
-  endsWithAny(name, [
-    ".mp4",
-    ".mov",
-    ".avi",
-    ".mkv",
-    ".webm",
-    ".3gp",
-  ])
+    ) {
 
-) {
+      return "video";
+    }
 
-  return "video";
-}
-   
-    // =================================================
-    // CODE FILES
-    // =================================================
+    // ==========================================
+    // 💻 CODE FILES
+    // ==========================================
 
     if (
       endsWithAny(name, [
@@ -234,88 +329,70 @@ export function detectTool(
         ".cpp",
         ".c",
         ".json",
+        ".gradle",
       ])
     ) {
 
-      return "code";
+      return "coding";
     }
 
-    // =================================================
-    // EXCEL / SHEETS
-    // =================================================
+    // ==========================================
+    // 📄 DOCUMENTS
+    // ==========================================
 
     if (
+
+      mime.includes("pdf") ||
+
+      mime.includes("word") ||
+
+      mime.includes("document") ||
+
       mime.includes("sheet") ||
+
       mime.includes("excel") ||
-      endsWithAny(name, [
-        ".xlsx",
-        ".xls",
-        ".csv",
-      ])
+
+      mime.includes("csv") ||
+
+      name.endsWith(".pdf") ||
+
+      name.endsWith(".docx") ||
+
+      name.endsWith(".txt") ||
+
+      name.endsWith(".csv") ||
+
+      name.endsWith(".md")
+
     ) {
 
-      return "spreadsheet";
+      return "file";
     }
-
-    // =================================================
-    // DOCUMENTS
-    // =================================================
-
-    if (
-
-mime.includes("pdf") ||
-
-mime.includes("word") ||
-
-mime.includes("officedocument") ||
-
-mime.includes("document") ||
-
-mime.includes("sheet") ||
-
-mime.includes("excel") ||
-
-mime.includes("csv") ||
-
-mime.includes("json") ||
-
-name.endsWith(".pdf") ||
-
-name.endsWith(".docx") ||
-
-name.endsWith(".txt") ||
-
-name.endsWith(".md") ||
-
-name.endsWith(".csv") ||
-
-name.endsWith(".json")
-
-) {
-
-return "file";
-}
   }
 
-  // =====================================================
-  // TEXT MODE
-  // =====================================================
+  // ==========================================
+  // 🖼️ IMAGE GENERATION
+  // ==========================================
 
-  // Image Generation
   if (
     hasAny(text, [
       "generate image",
       "create image",
       "draw",
-      "logo",
-      "poster",
       "wallpaper",
+      "poster",
+      "logo",
+      "ai art",
     ])
   ) {
-    return "image";
+
+    return "image_generation";
   }
 
-  // Resume
+  // ==========================================
+  // 📄 RESUME
+  // ==========================================
+
   if (
     hasAny(text, [
       "resume",
@@ -323,72 +400,69 @@ return "file";
       "ats resume",
     ])
   ) {
+
     return "resume";
   }
 
-  // PDF
+  // ==========================================
+  // 📕 PDF
+  // ==========================================
+
   if (
     hasAny(text, [
       "make pdf",
       "export pdf",
     ])
   ) {
+
     return "pdf";
   }
 
-  // Audio
-  if (
-    hasAny(text, [
-      "speech",
-      "voice",
-      "song",
-      "music",
-    ])
-  ) {
-    return "audio";
-  }
+  // ==========================================
+  // 🌐 SEARCH
+  // ==========================================
 
-  // Video
   if (
     hasAny(text, [
-      "reel",
-      "shorts",
-      "video",
-    ])
-  ) {
-    return "video";
-  }
-
-  // Search
-  if (
-    hasAny(text, [
-      "news",
       "latest",
+      "news",
       "search",
       "find",
+      "weather",
+      "price",
     ])
   ) {
+
     return "search";
   }
 
-  return "chat";
+  // ==========================================
+  // ⚡ DEFAULT
+  // ==========================================
+
+  return "groq_chat";
 }
 
-// =====================================================
+// ==========================================
 // HELPERS
-// =====================================================
+// ==========================================
 
-function hasAny(text, arr = []) {
+function hasAny(
+  text,
+  arr = []
+) {
+
   return arr.some((w) =>
     text.includes(w)
   );
 }
 
 function endsWithAny(
-  name,
+  text,
   arr = []
 ) {
+
   return arr.some((ext) =>
-    name.endsWith(ext)
+    text.endsWith(ext)
   );
 }

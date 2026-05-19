@@ -43,8 +43,10 @@ function ensureDir(dir) {
 }
 
 function buildStyle(prompt) {
-  const lower =
-    prompt.toLowerCase();
+const lower =
+  String(prompt || "")
+    .toLowerCase()
+    .trim();
 
   // 🎨 Ghibli / Anime
   if (
@@ -289,10 +291,10 @@ async function generateOpenRouter(
 // ==========================================
 // HUGGINGFACE
 // ==========================================
-
 async function generateHF(
   prompt
 ) {
+
   const apiKey =
     process.env
       .HUGGINGFACE_API_KEY;
@@ -320,6 +322,34 @@ async function generateHF(
       }
     );
 
+  // ======================================
+  // 🔥 VALIDATE IMAGE RESPONSE
+  // ======================================
+
+  const contentType =
+    res.headers[
+      "content-type"
+    ] || "";
+
+  if (
+    !contentType.includes(
+      "image"
+    )
+  ) {
+
+    const txt =
+      Buffer.from(
+        res.data
+      ).toString("utf8");
+
+    console.error(
+      "HF ERROR:",
+      txt
+    );
+
+    return null;
+  }
+
   const dir = path.join(
     process.cwd(),
     "public",
@@ -342,7 +372,7 @@ async function generateHF(
     res.data
   );
 
-  return `${process.env.PUBLIC_URL}/generated/${fileName}`;
+  return `${process.env.PUBLIC_URL || ""}/generated/${fileName}`;
 }
 
 // ==========================================
@@ -386,40 +416,43 @@ async function saveImage(
     imgRes.data
   );
 
-  return `${process.env.PUBLIC_URL}/generated/${fileName}`;
+  return `${process.env.PUBLIC_URL || ""}/generated/${fileName}`;
 }
 
 // ==========================================
 // VARIATIONS
 // ==========================================
-
 export async function generateVariations(
   prompt,
   count = 3
 ) {
-  const results = [];
 
-  for (
-    let i = 0;
-    i < count;
-    i++
-  ) {
-    const out =
-      await generateImage(
-        `${prompt}, variation ${
-          i + 1
-        }`
-      );
+  const jobs = Array.from(
+    { length: count },
+    (_, i) =>
 
-    if (
-      out?.type ===
-      "image"
-    ) {
-      results.push(
-        out.url
-      );
-    }
-  }
+      generateImage(
+        `${prompt}, variation ${i + 1}`
+      )
+  );
 
-  return results;
+  const outputs =
+    await Promise.allSettled(
+      jobs
+    );
+
+  return outputs
+
+    .filter(
+      (r) =>
+        r.status ===
+          "fulfilled" &&
+
+        r.value?.type ===
+          "image"
+    )
+
+    .map(
+      (r) => r.value.url
+    );
 }

@@ -4,93 +4,185 @@ const OPENROUTER_URL =
   "https://openrouter.ai/api/v1/chat/completions";
 
 /**
- * 🚀 DevU AI - OpenRouter Ultra Fast Streaming Service
+ * ==========================================
+ * 🚀 DEVU AI FINAL OPENROUTER SERVICE
+ * ==========================================
+ * Features:
+ * ✅ GPT-4o / GPT-4o-mini
+ * ✅ Streaming
+ * ✅ Image input
+ * ✅ Timeout safe
+ * ✅ Production safe
+ * ✅ Memory safe
+ * ✅ Render safe
+ * ✅ Mobile optimized
+ * ==========================================
  */
+
 export async function streamOpenRouter(
   messages = [],
   files = [],
-  model = "openai/gpt-4o-mini"
+  model = "gpt-4o-mini"
 ) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
 
-  // ===============================
-  // 🔐 ENV CHECK
-  // ===============================
+  // ======================================
+  // 🔐 API KEY
+  // ======================================
+
+  const apiKey =
+    process.env.OPENROUTER_API_KEY;
+
   if (!apiKey) {
-    console.error("❌ OPENROUTER_API_KEY missing");
-    throw new Error("OpenRouter not configured");
+
+    console.error(
+      "❌ OPENROUTER_API_KEY missing"
+    );
+
+    throw new Error(
+      "OpenRouter not configured"
+    );
   }
 
-  // ===============================
-  // 🧠 MODEL MAP
-  // ===============================
-  let finalModel = "openai/gpt-4o-mini";
+  // ======================================
+  // 🧠 SAFE MODEL MAP
+  // ======================================
 
-  switch (model) {
-    case "gpt4o":
-    case "gpt-4o":
-      finalModel = "openai/gpt-4o";
-      break;
+  const allowedModels = {
 
-    case "gpt-4o-mini":
-      finalModel = "openai/gpt-4o-mini";
-      break;
+    "gpt4o":
+      "openai/gpt-4o",
 
-    default:
-      finalModel = model || "openai/gpt-4o-mini";
-  }
+    "gpt-4o":
+      "openai/gpt-4o",
 
-  // ===============================
-  // 💬 FORMAT MESSAGES
-  // ===============================
-  const chatMessages = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+    "gpt-4o-mini":
+      "openai/gpt-4o-mini",
+  };
 
-  // ===============================
-  // 🖼 IMAGE SUPPORT
-  // ===============================
- if (files?.length > 0) {
-  const images = files
-    .filter((f) =>
-      f?.mimeType?.startsWith("image/")
+  const finalModel =
+
+    allowedModels[model] ||
+
+    "openai/gpt-4o-mini";
+
+  // ======================================
+  // 💬 CLEAN MESSAGES
+  // ======================================
+
+  const chatMessages = messages
+
+    .filter(
+      (m) =>
+        m?.role &&
+        m?.content
     )
-    .filter((f) =>
-      f?.buffer || f?.bytes
-    )
-    .map((f) => ({
-      type: "image_url",
-      image_url: {
-        url: `data:${f.mimeType};base64,${(
-          f.buffer || f.bytes
-        ).toString("base64")}`,
-      },
+
+    .map((m) => ({
+
+      role: m.role,
+
+      content: m.content,
     }));
 
-    if (images.length > 0) {
-      const lastUserIndex = [...chatMessages]
-        .reverse()
-        .findIndex(
-          (m) => m.role === "user"
-        );
+  // ======================================
+  // 🖼️ IMAGE SUPPORT
+  // ======================================
 
-      if (lastUserIndex !== -1) {
+  if (files?.length > 0) {
+
+    const images = files
+
+      .filter((f) =>
+        f?.mimeType?.startsWith(
+          "image/"
+        )
+      )
+
+      .filter(
+        (f) =>
+
+          Buffer.isBuffer(
+            f?.buffer
+          ) ||
+
+          Buffer.isBuffer(
+            f?.bytes
+          )
+      )
+
+      .map((f) => {
+
+        const imageBuffer =
+
+          f.buffer ||
+
+          f.bytes;
+
+        return {
+
+          type: "image_url",
+
+          image_url: {
+
+            url:
+`data:${f.mimeType};base64,${imageBuffer.toString("base64")}`,
+          },
+        };
+      });
+
+    // ======================================
+    // ADD IMAGE TO LAST USER MESSAGE
+    // ======================================
+
+    if (images.length > 0) {
+
+      const lastUserIndex =
+
+        [...chatMessages]
+
+          .reverse()
+
+          .findIndex(
+            (m) =>
+              m.role ===
+              "user"
+          );
+
+      if (
+        lastUserIndex !== -1
+      ) {
+
         const realIndex =
+
           chatMessages.length -
+
           1 -
+
           lastUserIndex;
 
-        chatMessages[realIndex] = {
+        chatMessages[
+          realIndex
+        ] = {
+
           role: "user",
+
           content: [
+
             {
               type: "text",
+
               text:
- typeof chatMessages[realIndex].content === "string"
-   ? chatMessages[realIndex].content
-   : "",
+typeof chatMessages[
+  realIndex
+].content === "string"
+
+? chatMessages[
+    realIndex
+  ].content
+
+: "",
             },
+
             ...images,
           ],
         };
@@ -98,86 +190,133 @@ export async function streamOpenRouter(
     }
   }
 
-  // ===============================
-  // ⏱ TIMEOUT CONTROLLER
-  // ===============================
+  // ======================================
+  // ⏱️ TIMEOUT
+  // ======================================
+
   const controller =
     new AbortController();
 
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, 30000);
+  const timeout =
+    setTimeout(() => {
+
+      controller.abort();
+
+    }, 30000);
 
   let res;
 
-  // ===============================
-  // 🚀 API REQUEST
-  // ===============================
+  // ======================================
+  // 🚀 REQUEST
+  // ======================================
+
   try {
+
     res = await fetch(
       OPENROUTER_URL,
       {
+
         method: "POST",
-        signal: controller.signal,
+
+        signal:
+          controller.signal,
+
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+
+          Authorization:
+            `Bearer ${apiKey}`,
+
           "Content-Type":
             "application/json",
+
           Accept:
             "text/event-stream",
+
           "HTTP-Referer":
             "https://devu-ai.onrender.com",
+
           "X-Title":
             "DevU AI",
         },
+
         body: JSON.stringify({
-          model: finalModel,
+
+          model:
+            finalModel,
+
           stream: true,
-          max_tokens: 2048,
-          temperature: 0.6,
-          messages: chatMessages,
+
+          max_tokens: 1200,
+
+          temperature: 0.7,
+
+          messages:
+            chatMessages,
         }),
       }
     );
 
     clearTimeout(timeout);
+
   } catch (err) {
+
     clearTimeout(timeout);
 
-    if (err.name === "AbortError") {
+    if (
+      err.name ===
+      "AbortError"
+    ) {
+
       throw new Error(
         "OpenRouter timeout"
       );
     }
 
-   throw new Error(
- `OpenRouter network failed: ${err.message}`
+    throw new Error(
+`OpenRouter network failed: ${err.message}`
     );
   }
 
-  // ===============================
+  // ======================================
   // ❌ BAD RESPONSE
-  // ===============================
+  // ======================================
+
   if (!res.ok) {
+
     const errText =
       await res.text();
 
+    if (
+      res.status === 429
+    ) {
+
+      throw new Error(
+        "RATE_LIMITED"
+      );
+    }
+
     throw new Error(
-      `OpenRouter ${res.status}: ${errText}`
+`OpenRouter ${res.status}: ${errText}`
     );
   }
 
-  // ===============================
+  // ======================================
   // 🔥 STREAM PARSER
-  // ===============================
+  // ======================================
+
   const decoder =
     new TextDecoder();
 
   async function* streamTokens() {
+
     let buffer = "";
 
     try {
-      for await (const chunk of res.body) {
+
+      for await (
+        const chunk of res.body
+      ) {
+
         buffer += decoder.decode(
           chunk,
           {
@@ -191,53 +330,83 @@ export async function streamOpenRouter(
         buffer =
           lines.pop() || "";
 
+        // ======================================
+        // MEMORY SAFETY
+        // ======================================
+
+        if (
+          buffer.length >
+          10000
+        ) {
+
+          buffer = "";
+        }
+
         for (const line of lines) {
+
           if (
             !line.startsWith(
               "data:"
             )
-          )
+          ) {
             continue;
+          }
 
-          const raw = line
-            .replace(
-              "data:",
-              ""
-            )
-            .trim();
+          const raw =
+            line
+              .replace(
+                "data:",
+                ""
+              )
+              .trim();
 
-          if (!raw) continue;
+          if (!raw) {
+            continue;
+          }
 
           if (
-            raw === "[DONE]"
-          )
+            raw ===
+            "[DONE]"
+          ) {
+
             return;
+          }
 
           try {
+
             const json =
               JSON.parse(
                 raw
               );
 
             const token =
+
               json
                 ?.choices?.[0]
                 ?.delta
                 ?.content;
 
+            // ======================================
+            // STREAM TOKEN
+            // ======================================
+
             if (
-              token &&
-              token.trim() !==
-                ""
+              typeof token ===
+              "string"
             ) {
+
               yield token;
             }
+
           } catch {
+
             // ignore partial chunks
           }
         }
       }
+
     } catch (err) {
+
       console.error(
         "❌ Stream parser failed:",
         err.message
@@ -245,5 +414,16 @@ export async function streamOpenRouter(
     }
   }
 
-  return streamTokens();
+  // ======================================
+  // ✅ FINAL RETURN
+  // ======================================
+
+  return {
+
+    stream:
+      streamTokens(),
+
+    usedModel:
+      finalModel,
+  };
 }

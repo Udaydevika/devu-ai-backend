@@ -93,8 +93,16 @@ fs.writeFileSync(
   audioBuffer
 );
 
-    const fileUrl =
-      `${process.env.PUBLIC_URL}/generated/${fileName}`;
+
+const base =
+
+  process.env.PUBLIC_URL ||
+
+  "http://localhost:3000";
+
+const fileUrl =
+  `${base}/generated/${fileName}`;
+
 
     // ======================================
     // NO API KEY → STILL RETURN AUDIO

@@ -146,8 +146,10 @@ memorySchema.statics.cleanupOldMemories = async function (userId) {
       lastUsedAt: { $lt: threshold },
     },
     {
+      $set: {
       isDeleted: false, // 🔥 ADD THIS
     }
+  }
   );
 };
 

@@ -1,8 +1,14 @@
 import fs from "fs";
 import { streamOpenRouter } from "../services/openrouter.service.js";
-import { streamGemini } from "../services/gemini.service.js";
-import { streamGroq } from "../services/groq.service.js";
-import { streamHuggingFace } from "../services/huggingface.service.js";
+import { streamGroq }
+from "../services/groq.service.js";
+
+import { streamGemini }
+from "../services/gemini.service.js";
+
+import { streamHuggingFace }
+from "../services/huggingface.service.js";
+
 
 import { DEFAULT_GREETING } from "../core/defaults.js";
 
@@ -44,19 +50,16 @@ function humanizeText(text = "") {
 }
 
 async function getBestStream(messages) {
-  const providers = [
-  {
-    name: "gemini",
-    run: async () =>
-      await streamGemini(messages),
-  },
+const providers = [
+
   {
     name: "groq",
     run: async () =>
       await streamGroq(messages),
   },
+
   {
-    name: "gpt4o",
+    name: "gpt4o-mini",
     run: async () =>
       await streamOpenRouter(
         messages,
@@ -64,6 +67,13 @@ async function getBestStream(messages) {
         "gpt-4o-mini"
       ),
   },
+
+  {
+    name: "gemini",
+    run: async () =>
+      await streamGemini(messages),
+  },
+
   {
     name: "huggingface",
     run: async () =>
@@ -72,17 +82,47 @@ async function getBestStream(messages) {
 ];
 
   for (const provider of providers) {
-    try {
-      const stream = await provider.run();
 
-      if (stream) {
-        return {
-          stream,
-          usedModel: provider.name,
-        };
-      }
-    } catch (_) {}
-  }
+try {
+
+console.log(
+  `🧠 Trying ${provider.name}`
+);
+
+const stream =
+  await provider.run();
+
+if (
+
+  stream &&
+
+  typeof stream[
+    Symbol.asyncIterator
+  ] === "function"
+
+) {
+
+  return {
+
+    stream,
+
+    usedModel:
+      provider.name,
+  };
+}
+
+} catch (err) {
+
+console.error(
+
+  `❌ ${provider.name} failed:`,
+
+  err.message
+);
+
+}
+}
+
 
   throw new Error("All AI providers failed");
 }
@@ -166,6 +206,20 @@ export async function chatController(req, res) {
 // =========================
 
 const file = files?.[0];
+if (
+  file &&
+  !file.buffer &&
+  !file.path
+) {
+
+  return res.status(400).json({
+
+    type: "text",
+
+    text:
+      "⚠️ Invalid uploaded file.",
+  });
+}
 
 if (
 file?.mimetype?.startsWith("image/")
@@ -201,7 +255,9 @@ text: "⚠️ No file uploaded.",
       return res.json({
         type: "image",
         image:
-          out?.url || "",
+          typeof out === "string"
+            ? out
+            : out?.url || "",
         text:
           "Ghibli image created",
         usedModel:
@@ -525,10 +581,17 @@ if (
   !isSensitive
 ) {
       
-      extractAndStoreMemory(
-        userId,
-        lastText
-      ).catch(() => {});
+extractAndStoreMemory({
+  userId,
+  message: lastText,
+}).catch((err) => {
+
+  console.error(
+    "❌ Memory Extract:",
+    err.message
+  );
+});
+
     }
 
     let memoryPrompt = null;
@@ -624,10 +687,11 @@ Make every reply useful, smart, and premium.
     // =========================
     // CACHE
     // =========================
-    const cacheKey =
-      JSON.stringify(
-        finalMessages
-      );
+const cacheKey =
+
+  lastText
+    .toLowerCase()
+    .trim();
 
     const cached =
       getCache(cacheKey);
@@ -653,11 +717,20 @@ Make every reply useful, smart, and premium.
     let fullResponse = "";
 
     for await (let token of stream) {
-      token =
-        humanizeText(token);
 
-      fullResponse += token;
-    }
+token =
+String(token || "");
+
+if (!token.trim()) {
+continue;
+}
+
+token =
+humanizeText(token);
+
+fullResponse += token;
+}
+
 
     fullResponse =
       enhanceTextForSpeech(
@@ -707,5 +780,4 @@ Make every reply useful, smart, and premium.
       text:
         "⚠️ Server error",
     });
-  }
-}
+  }}

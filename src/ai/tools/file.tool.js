@@ -60,11 +60,19 @@ export async function handleFile(file) {
       name.endsWith(".pdf")
     ) {
 
-      const data =
-        await pdfParse(buffer);
+try {
 
-      text =
-        data?.text || "";
+  const data =
+    await pdfParse(buffer);
+
+  text =
+    data?.text || "";
+
+} catch {
+
+  text =
+    "⚠️ Failed to read PDF.";
+}
     }
 
     // ======================================
