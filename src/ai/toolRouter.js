@@ -87,7 +87,9 @@ export function detectTool(
   if (hasFiles) {
 
     const file =
-      files[0] || {};
+  Array.isArray(files)
+    ? files[0] || {}
+    : {};
 
     const mime = String(
 
@@ -152,9 +154,7 @@ hasAny(text, [
 ])
 ) {
 
-```
 return "ocr";
-```
 
 }
 
@@ -174,9 +174,7 @@ hasAny(text, [
 ])
 ) {
 
-```
 return "image_edit";
-```
 
 }
 
@@ -197,9 +195,7 @@ hasAny(text, [
 ])
 ) {
 
-```
 return "image_variation";
-```
 
 }
 
@@ -216,9 +212,8 @@ hasAny(text, [
 ])
 ) {
 
-```
+
 return "image_video";
-```
 
 }
 
@@ -236,9 +231,8 @@ hasAny(text, [
 ])
 ) {
 
-```
+
 return "image_generation";
-```
 
 }
 
@@ -435,6 +429,19 @@ return "vision";
 
     return "search";
   }
+
+  if (
+  hasAny(text, [
+    "explain",
+    "why",
+    "teach",
+    "reason",
+    "analyze",
+  ])
+) {
+
+  return "coding";
+}
 
   // ==========================================
   // ⚡ DEFAULT

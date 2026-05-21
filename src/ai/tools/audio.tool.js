@@ -166,8 +166,10 @@ const fileUrl =
       p.includes("summary") ||
       p.includes("summarize")
     ) {
-      text =
-        `📝 Summary:\n\n${text.substring(0, 2000)}`;
+     text =
+  text.length > 2000
+    ? text.slice(0, 2000) + "\n\n...[truncated]"
+    : text;
     }
 
     if (

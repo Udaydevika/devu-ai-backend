@@ -295,39 +295,46 @@ export async function handleVideo(
           reel.buffer
         );
 
-        const captioned =
-          await addCaptionToVideo(
-            reelTemp,
-            "🔥 Watch Till End"
-          );
+        let captioned = "";
 
-        safeDelete(reelTemp);
+try {
 
-        const fileName =
-          `viral_${Date.now()}.mp4`;
+  captioned =
+    await addCaptionToVideo(
+      reelTemp,
+      "🔥 Watch Till End"
+    );
 
-        const finalPath =
-          path.join(
-            PUBLIC_DIR,
-            fileName
-          );
+  const fileName =
+    `viral_${Date.now()}.mp4`;
 
-        fs.copyFileSync(
-          captioned,
-          finalPath
-        );
+  const finalPath =
+    path.join(
+      PUBLIC_DIR,
+      fileName
+    );
 
-        safeDelete(captioned);
+  fs.copyFileSync(
+    captioned,
+    finalPath
+  );
 
-        return {
-          type: "video",
+  return {
+    type: "video",
 
-          url:
+    url:
 `${BASE_URL}/${fileName}`,
 
-          text:
-            "🎬 Viral reel created.",
-        };
+    text:
+      "🎬 Viral reel created.",
+  };
+
+} finally {
+
+  safeDelete(reelTemp);
+
+  safeDelete(captioned);
+}
 
       } catch (err) {
 
@@ -378,152 +385,160 @@ export async function handleVideo(
 
       try {
 
-        const frames =
-          await extractFrames(
-            tempPath
-          );
+  let frames = [];
 
-        const cleanupFrames =
-          () => {
+  const cleanupFrames =
+    () => {
 
-            try {
+      try {
 
-              for (const f of frames) {
-                safeDelete(f);
-              }
+        for (const f of frames) {
 
-            } catch {}
-          };
-
-        if (
-          !frames ||
-          frames.length === 0
-        ) {
-
-          throw new Error(
-            "No frames extracted"
-          );
+          safeDelete(f);
         }
 
-        const scores = [];
+      } catch (_) {}
+    };
 
-        for (
-          let i = 0;
-          i < Math.min(2, frames.length);
-          i++
-        ) {
+  try {
 
-          const img =
-            fs.readFileSync(
-              frames[i]
-            );
+    frames =
+      await extractFrames(
+        tempPath
+      );
 
-          const stream =
-            await withTimeout(
+    if (
+      !frames ||
+      frames.length === 0
+    ) {
 
-              streamGemini(
-                [
-                  {
-                    role: "user",
-
-                    content:
-"Rate excitement 1-10. Only return number.",
-                  },
-                ],
-
-                img,
-
-                "image/png"
-              )
-            );
-
-          let text = "";
-
-          for await (
-            const token of stream
-          ) {
-
-            text += token;
-          }
-
-          const score =
-            parseInt(
-              text.match(/\d+/)?.[0] || "5"
-            );
-
-          scores.push({
-            index: i,
-            score,
-          });
-        }
-
-        scores.sort(
-          (a, b) =>
-            b.score - a.score
-        );
-
-        const startAt =
-          scores[0].index * 10;
-
-        const reel =
-          await trimVideo(
-            videoBuffer,
-            {
-              duration: 30,
-              startAt,
-              ext,
-              vertical: true,
-            }
-          );
-
-        cleanupFrames();
-
-        const videoUrl =
-          saveBuffer(
-            reel.buffer,
-            reel.filename
-          );
-
-        return {
-          type: "video",
-          url: videoUrl,
-          text:
-            "🎬 AI highlight created.",
-        };
-
-      } catch (err) {
-
-        console.error(
-          "❌ Highlight Mode:",
-          err.message
-        );
-
-        const fallback =
-          await trimVideo(
-            videoBuffer,
-            {
-              duration: 30,
-              startAt: 0,
-              ext,
-              vertical: false,
-            }
-          );
-
-        const fallbackUrl =
-          saveBuffer(
-            fallback.buffer,
-            fallback.filename
-          );
-
-        return {
-          type: "video",
-          url: fallbackUrl,
-          text:
-            "🎬 Fallback clip created.",
-        };
-      }
+      throw new Error(
+        "No frames extracted"
+      );
     }
 
+    const scores = [];
+
+    for (
+      let i = 0;
+      i < Math.min(4, frames.length);
+      i++
+    ) {
+
+      const img =
+        fs.readFileSync(
+          frames[i]
+        );
+
+      const stream =
+        await withTimeout(
+
+          streamGemini(
+            [
+              {
+                role: "user",
+
+                content:
+"Rate excitement 1-10. Only return number.",
+              },
+            ],
+
+            img,
+
+            "image/png"
+          )
+        );
+
+      let text = "";
+
+      for await (
+        const token of stream
+      ) {
+
+        text += token;
+      }
+
+      const score =
+        parseInt(
+          text.match(/\d+/)?.[0] || "5"
+        );
+
+      scores.push({
+        index: i,
+        score,
+      });
+    }
+
+    scores.sort(
+      (a, b) =>
+        b.score - a.score
+    );
+
+    const startAt =
+      scores[0].index * 10;
+
+    const reel =
+      await trimVideo(
+        videoBuffer,
+        {
+          duration: 30,
+          startAt,
+          ext,
+          vertical: true,
+        }
+      );
+
+    const videoUrl =
+      saveBuffer(
+        reel.buffer,
+        reel.filename
+      );
+
+    return {
+      type: "video",
+      url: videoUrl,
+      text:
+        "🎬 AI highlight created.",
+    };
+
+ } finally {
+
+  cleanupFrames();
+}
+
+} catch (err) {
+
+  console.error(
+    "❌ Highlight Mode:",
+    err.message
+  );
+
+  const fallback =
+    await trimVideo(
+      videoBuffer,
+      {
+        duration: 30,
+        startAt: 0,
+        ext,
+        vertical: false,
+      }
+    );
+
+  const fallbackUrl =
+    saveBuffer(
+      fallback.buffer,
+      fallback.filename
+    );
+
+  return {
+    type: "video",
+    url: fallbackUrl,
+    text:
+      "🎬 Fallback clip created.",
+  };
+}
+
+}
     // ======================================
     // 🎞️ MODE 3 — SIMPLE CLIP
     // ======================================
@@ -563,131 +578,139 @@ export async function handleVideo(
     }
 
     // ======================================
-    // 👁️ MODE 4 — VIDEO ANALYSIS
-    // ======================================
+// 👁️ MODE 4 — VIDEO ANALYSIS
+// ======================================
 
-    const frames =
-      await extractFrames(
-        tempPath
-      );
+let frames = [];
 
-    const cleanupFrames =
-      () => {
+const cleanupFrames =
+  () => {
 
-        try {
+    try {
 
-          for (const f of frames) {
-            safeDelete(f);
-          }
+      for (const f of frames) {
 
-        } catch {}
-      };
-
-    if (
-      !frames ||
-      frames.length === 0
-    ) {
-
-      const fileName =
-        `video_${Date.now()}${ext}`;
-
-      const url =
-        saveBuffer(
-          videoBuffer,
-          fileName
-        );
-
-      return {
-        type: "video",
-        url,
-        text:
-          "🎬 Video uploaded.",
-      };
-    }
-
-    const notes = [];
-
-    for (
-      let i = 0;
-      i < Math.min(2, frames.length);
-      i++
-    ) {
-
-      const img =
-        fs.readFileSync(
-          frames[i]
-        );
-
-      const stream =
-        await withTimeout(
-
-          streamGemini(
-            [
-              {
-                role: "user",
-
-                content:
-                  "Describe this frame briefly.",
-              },
-            ],
-
-            img,
-
-            "image/png"
-          )
-        );
-
-      let text = "";
-
-      for await (
-        const token of stream
-      ) {
-
-        text += token;
+        safeDelete(f);
       }
 
-      notes.push(
-        `Frame ${i + 1}: ${text}`
+    } catch (_) {}
+  };
+
+try {
+
+  frames =
+    await extractFrames(
+      tempPath
+    );
+
+  if (
+    !frames ||
+    frames.length === 0
+  ) {
+
+    const fileName =
+      `video_${Date.now()}${ext}`;
+
+    const url =
+      saveBuffer(
+        videoBuffer,
+        fileName
       );
-    }
-
-    cleanupFrames();
-
-    const summaryStream =
-      await withTimeout(
-
-        streamGemini([
-          {
-            role: "user",
-
-            content:
-`Summarize this video:
-
-${notes.join("\n")}`,
-          },
-        ])
-      );
-
-    let summary = "";
-
-    for await (
-      const token of summaryStream
-    ) {
-
-      summary += token;
-    }
 
     return {
-      type: "text",
-
+      type: "video",
+      url,
       text:
+        "🎬 Video uploaded.",
+    };
+  }
+
+  const notes = [];
+
+  for (
+    let i = 0;
+    i < Math.min(4, frames.length);
+    i++
+  ) {
+
+    const img =
+      fs.readFileSync(
+        frames[i]
+      );
+
+    const stream =
+      await withTimeout(
+
+        streamGemini(
+          [
+            {
+              role: "user",
+
+              content:
+                "Describe this frame briefly.",
+            },
+          ],
+
+          img,
+
+          "image/png"
+        )
+      );
+
+    let text = "";
+
+    for await (
+      const token of stream
+    ) {
+
+      text += token;
+    }
+
+    notes.push(
+      `Frame ${i + 1}: ${text}`
+    );
+  }
+
+  const summaryStream =
+    await withTimeout(
+
+      streamGemini([
+        {
+          role: "user",
+
+          content:
+`Summarize this video:
+
+${notes.join("\n").slice(0, 4000)}`,
+        },
+      ])
+    );
+
+  let summary = "";
+
+  for await (
+    const token of summaryStream
+  ) {
+
+    summary += token;
+  }
+
+  return {
+    type: "text",
+
+    text:
 summary
   ? `🎬 Video Analysis Complete
 
 ${summary}`
 
   : "🎬 Video analyzed.",
-    };
+  };
+
+} finally {
+
+  cleanupFrames();
+}
 
   } catch (err) {
 

@@ -29,71 +29,125 @@ import { handleVideo } from "../ai/tools/video.tool.js";
 // SSE HELPERS
 // ==========================================
 
+function done(
+  res,
+  ping
+) {
+
+  clearInterval(ping);
+
+  if (
+    res.writableEnded ||
+    res.destroyed
+  ) {
+    return;
+  }
+
+  try {
+
+    // ✅ FINAL JSON EVENT
+    res.write(
+      `data: ${JSON.stringify({
+        done: true
+      })}\n\n`
+    );
+
+    // ✅ FINAL SSE CLOSE
+    res.write(
+      "data: [DONE]\n\n"
+    );
+
+    res.end();
+
+  } catch (err) {
+
+    console.error(
+      "DONE ERROR:",
+      err.message
+    );
+  }
+}
+
 function send(res, type, content) {
 
-  if (!content) return;
+  if (
+    res.writableEnded ||
+    res.destroyed
+  ) {
+    return;
+  }
 
-  res.write(
-    `data: ${JSON.stringify({
-      type,
-      content,
-    })}\n\n`
-  );
+  try {
+
+    res.write(
+      `data: ${JSON.stringify({
+        type,
+        content,
+      })}\n\n`
+    );
+
+  } catch (err) {
+
+    console.error(
+      "SEND ERROR:",
+      err.message
+    );
+  }
 }
 
 function sendDownload(
   res,
-  title,
+  name,
   url,
   fileType = "file"
 ) {
 
-  send(res, "download", {
-    title,
-    url,
-    fileType,
-  });
+  if (
+    !url ||
+    res.writableEnded ||
+    res.destroyed
+  ) {
+    return;
+  }
+
+  try {
+
+    res.write(
+      `data: ${JSON.stringify({
+
+        type: "download",
+
+        content: {
+          name,
+          url,
+          fileType,
+        },
+
+      })}\n\n`
+    );
+
+  } catch (err) {
+
+    console.error(
+      "DOWNLOAD ERROR:",
+      err.message
+    );
+  }
 }
-
-function done(res, ping) {
-
-clearInterval(ping);
-
-if (
-res.writableEnded
-) {
-return;
-}
-
-try {
-
-res.write(
-  "data: [DONE]\n\n"
-);
-
-res.end();
-
-} catch (err) {
-
-console.error(
-  "DONE ERROR:",
-  err.message
-);
-
-}
-}
-
 
 function startSSE(res) {
 
-  res.flushHeaders?.();
+  // ======================================
+  // ✅ SSE HEADERS
+  // ======================================
 
   res.writeHead(200, {
+
     "Content-Type":
       "text/event-stream",
 
     "Cache-Control":
-      "no-cache",
+      "no-cache, no-transform",
 
     Connection:
       "keep-alive",
@@ -102,8 +156,24 @@ function startSSE(res) {
       "no",
   });
 
+  // ✅ IMPORTANT
+  res.flushHeaders?.();
+
+  // ======================================
+  // ❤️ KEEP ALIVE
+  // ======================================
+
   return setInterval(() => {
-    res.write(":\n\n");
+
+    if (
+      !res.writableEnded
+    ) {
+
+    res.write(
+  `event: ping\ndata: ok\n\n`
+);
+    }
+
   }, 15000);
 }
 
@@ -145,15 +215,36 @@ export const chatStreamController = [
     const ping =
       startSSE(res);
 
-req.on("close", () => {
+    // =====================================
+    // CLIENT DISCONNECT
+    // =====================================
 
-  clearInterval(ping);
+    req.on("close", () => {
 
-  console.log(
-    "🔌 Client disconnected"
-  );
-});
+      console.log(
+        "🔌 Client disconnected"
+      );
 
+      clearInterval(ping);
+
+      try {
+
+        if (
+          !res.writableEnded &&
+          !res.destroyed
+        ) {
+
+          res.end();
+        }
+
+      } catch (err) {
+
+        console.error(
+          "CLOSE ERROR:",
+          err.message
+        );
+      }
+    });
 
     try {
 
@@ -249,10 +340,10 @@ req.on("close", () => {
       // ======================================
 
       const tool =
-        detectTool(
-          prompt,
-          files
-        );
+  detectTool(
+    prompt || "",
+    files || []
+  ) || "groq_chat";
 
       console.log(
         "🧠 TOOL:",
@@ -954,6 +1045,11 @@ ${out.text}`
     "⚠️ AI stream failed."
   );
 
+  console.log(
+  "🧠 MODEL:",
+  usedModel
+);
+
   return done(
     res,
     ping
@@ -963,7 +1059,23 @@ ${out.text}`
 // ======================================
 // 🔥 STREAM TOKENS
 // ======================================
+if (
+  !stream ||
+  typeof stream[Symbol.asyncIterator]
+    !== "function"
+) {
 
+  send(
+    res,
+    "text",
+    "⚠️ Invalid AI stream."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
 try {
 
 for await (const tokenRaw of stream) {
@@ -1054,15 +1166,11 @@ console.log(
 "✅ Stream completed"
 );
 
-if (
-!res.writableEnded
-) {
 
 return done(
 res,
 ping
 );
-}
 
     } catch (err) {
 

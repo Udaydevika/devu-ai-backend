@@ -1,422 +1,188 @@
+// src/services/openrouter.service.js
+
 import fetch from "node-fetch";
-
-const OPENROUTER_URL =
-  "https://openrouter.ai/api/v1/chat/completions";
-
-/**
- * ==========================================
- * 🚀 DEVU AI FINAL OPENROUTER SERVICE
- * ==========================================
- * Features:
- * ✅ GPT-4o / GPT-4o-mini
- * ✅ Streaming
- * ✅ Image input
- * ✅ Timeout safe
- * ✅ Production safe
- * ✅ Memory safe
- * ✅ Render safe
- * ✅ Mobile optimized
- * ==========================================
- */
 
 export async function streamOpenRouter(
   messages = [],
-  files = [],
-  model = "gpt-4o-mini"
+  images = [],
+  model = "openai/gpt-4o-mini"
 ) {
-
-  // ======================================
-  // 🔐 API KEY
-  // ======================================
 
   const apiKey =
     process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-
-    console.error(
-      "❌ OPENROUTER_API_KEY missing"
-    );
-
     throw new Error(
-      "OpenRouter not configured"
+      "OPENROUTER_API_KEY missing"
     );
   }
 
-  // ======================================
-  // 🧠 SAFE MODEL MAP
-  // ======================================
+  // =====================================
+  // 🧠 FORMAT MESSAGES
+  // =====================================
 
-  const allowedModels = {
+  const formattedMessages =
+    messages.map((m) => ({
 
-    "gpt4o":
-      "openai/gpt-4o",
+      role:
+        m.role || "user",
 
-    "gpt-4o":
-      "openai/gpt-4o",
-
-    "gpt-4o-mini":
-      "openai/gpt-4o-mini",
-  };
-
-  const finalModel =
-
-    allowedModels[model] ||
-
-    "openai/gpt-4o-mini";
-
-  // ======================================
-  // 💬 CLEAN MESSAGES
-  // ======================================
-
-  const chatMessages = messages
-
-    .filter(
-      (m) =>
-        m?.role &&
-        m?.content
-    )
-
-    .map((m) => ({
-
-      role: m.role,
-
-      content: m.content,
+      content:
+        m.content || "",
     }));
 
-  // ======================================
+  // =====================================
   // 🖼️ IMAGE SUPPORT
-  // ======================================
+  // =====================================
 
-  if (files?.length > 0) {
+  if (
+    images &&
+    images.length > 0
+  ) {
 
-    const images = files
+    formattedMessages.push({
+      role: "user",
 
-      .filter((f) =>
-        f?.mimeType?.startsWith(
-          "image/"
-        )
-      )
+      content: [
 
-      .filter(
-        (f) =>
+        {
+          type: "text",
 
-          Buffer.isBuffer(
-            f?.buffer
-          ) ||
+          text:
+            messages[
+              messages.length - 1
+            ]?.content ||
+            "Explain this image",
+        },
 
-          Buffer.isBuffer(
-            f?.bytes
-          )
-      )
-
-      .map((f) => {
-
-        const imageBuffer =
-
-          f.buffer ||
-
-          f.bytes;
-
-        return {
-
+        ...images.map((img) => ({
           type: "image_url",
 
           image_url: {
-
-            url:
-`data:${f.mimeType};base64,${imageBuffer.toString("base64")}`,
+            url: img,
           },
-        };
-      });
-
-    // ======================================
-    // ADD IMAGE TO LAST USER MESSAGE
-    // ======================================
-
-    if (images.length > 0) {
-
-      const lastUserIndex =
-
-        [...chatMessages]
-
-          .reverse()
-
-          .findIndex(
-            (m) =>
-              m.role ===
-              "user"
-          );
-
-      if (
-        lastUserIndex !== -1
-      ) {
-
-        const realIndex =
-
-          chatMessages.length -
-
-          1 -
-
-          lastUserIndex;
-
-        chatMessages[
-          realIndex
-        ] = {
-
-          role: "user",
-
-          content: [
-
-            {
-              type: "text",
-
-              text:
-typeof chatMessages[
-  realIndex
-].content === "string"
-
-? chatMessages[
-    realIndex
-  ].content
-
-: "",
-            },
-
-            ...images,
-          ],
-        };
-      }
-    }
+        })),
+      ],
+    });
   }
 
-  // ======================================
-  // ⏱️ TIMEOUT
-  // ======================================
+  // =====================================
+  // 🚀 API REQUEST
+  // =====================================
 
-  const controller =
-    new AbortController();
-
-  const timeout =
-    setTimeout(() => {
-
-      controller.abort();
-
-    }, 30000);
-
-  let res;
-
-  // ======================================
-  // 🚀 REQUEST
-  // ======================================
-
-  try {
-
-    res = await fetch(
-      OPENROUTER_URL,
+  const response =
+    await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
       {
-
         method: "POST",
 
-        signal:
-          controller.signal,
-
         headers: {
-
           Authorization:
             `Bearer ${apiKey}`,
 
           "Content-Type":
             "application/json",
-
-          Accept:
-            "text/event-stream",
-
-          "HTTP-Referer":
-            "https://devu-ai.onrender.com",
-
-          "X-Title":
-            "DevU AI",
         },
 
         body: JSON.stringify({
 
-          model:
-            finalModel,
+          model,
+
+          messages:
+            formattedMessages,
 
           stream: true,
 
-          max_tokens: 1200,
-
           temperature: 0.7,
-
-          messages:
-            chatMessages,
         }),
       }
     );
 
-    clearTimeout(timeout);
-
-  } catch (err) {
-
-    clearTimeout(timeout);
-
-    if (
-      err.name ===
-      "AbortError"
-    ) {
-
-      throw new Error(
-        "OpenRouter timeout"
-      );
-    }
+  if (!response.ok) {
 
     throw new Error(
-`OpenRouter network failed: ${err.message}`
+      await response.text()
     );
   }
 
-  // ======================================
-  // ❌ BAD RESPONSE
-  // ======================================
-
-  if (!res.ok) {
-
-    const errText =
-      await res.text();
-
-    if (
-      res.status === 429
-    ) {
-
-      throw new Error(
-        "RATE_LIMITED"
-      );
-    }
-
-    throw new Error(
-`OpenRouter ${res.status}: ${errText}`
-    );
-  }
-
-  // ======================================
-  // 🔥 STREAM PARSER
-  // ======================================
-
-  const decoder =
-    new TextDecoder();
+  // =====================================
+  // 🔥 STREAM TOKENS
+  // =====================================
 
   async function* streamTokens() {
 
-    let buffer = "";
+    const decoder =
+      new TextDecoder();
 
-    try {
+    let fullText = "";
 
-      for await (
-        const chunk of res.body
-      ) {
+    for await (
+      const chunk of response.body
+    ) {
 
-        buffer += decoder.decode(
-          chunk,
-          {
-            stream: true,
-          }
-        );
+      const text =
+        decoder.decode(chunk);
 
-        const lines =
-          buffer.split("\n");
+      const lines =
+        text.split("\n");
 
-        buffer =
-          lines.pop() || "";
-
-        // ======================================
-        // MEMORY SAFETY
-        // ======================================
+      for (const line of lines) {
 
         if (
-          buffer.length >
-          10000
+          !line.startsWith("data:")
         ) {
-
-          buffer = "";
+          continue;
         }
 
-        for (const line of lines) {
+        const json =
+          line.replace(
+            "data:",
+            ""
+          ).trim();
 
-          if (
-            !line.startsWith(
-              "data:"
-            )
-          ) {
-            continue;
-          }
-
-          const raw =
-            line
-              .replace(
-                "data:",
-                ""
-              )
-              .trim();
-
-          if (!raw) {
-            continue;
-          }
-
-          if (
-            raw ===
-            "[DONE]"
-          ) {
-
-            return;
-          }
-
-          try {
-
-            const json =
-              JSON.parse(
-                raw
-              );
-
-            const token =
-
-              json
-                ?.choices?.[0]
-                ?.delta
-                ?.content;
-
-            // ======================================
-            // STREAM TOKEN
-            // ======================================
-
-            if (
-              typeof token ===
-              "string"
-            ) {
-
-              yield token;
-            }
-
-          } catch {
-
-            // ignore partial chunks
-          }
+        if (
+          json === "[DONE]"
+        ) {
+          return;
         }
+
+        try {
+
+          const parsed =
+            JSON.parse(json);
+
+          const token =
+            parsed?.choices?.[0]
+              ?.delta?.content;
+
+          if (
+            typeof token ===
+            "string"
+          ) {
+
+            fullText += token;
+
+            yield token;
+          }
+
+        } catch (_) {}
       }
+    }
 
-    } catch (err) {
+    // =====================================
+    // ⚠️ EMPTY SAFETY
+    // =====================================
 
-      console.error(
-        "❌ Stream parser failed:",
-        err.message
-      );
+    if (!fullText.trim()) {
+
+      yield
+        "⚠️ OpenRouter returned empty response.";
     }
   }
 
-  // ======================================
-  // ✅ FINAL RETURN
-  // ======================================
+  // =====================================
+  // ✅ RETURN
+  // =====================================
 
   return {
 
@@ -424,6 +190,7 @@ typeof chatMessages[
       streamTokens(),
 
     usedModel:
-      finalModel,
+      model,
   };
+  return streamTokens();
 }

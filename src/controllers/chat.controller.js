@@ -201,11 +201,12 @@ export async function chatController(req, res) {
 
     console.log("🧠 TOOL:", tool);
 
-  // =========================
+ // =========================
 // 🔥 CAMERA + IMAGE ANALYSIS
 // =========================
 
 const file = files?.[0];
+
 if (
   file &&
   !file.buffer &&
@@ -213,29 +214,24 @@ if (
 ) {
 
   return res.status(400).json({
-
     type: "text",
-
     text:
       "⚠️ Invalid uploaded file.",
   });
 }
 
+// =====================================
+// 🖼️ IMAGE HANDLER
+// =====================================
+
 if (
-file?.mimetype?.startsWith("image/")
+  file?.mimetype?.startsWith(
+    "image/"
+  )
 ) {
 
   try {
 
-    if (!file) {
-
-  return res.status(400).json({
-type: "text",
-text: "⚠️ No file uploaded.",
-});
-}
-
-    // ✅ DECLARE ONLY ONCE
     const lower =
       lastText.toLowerCase();
 
@@ -253,27 +249,36 @@ text: "⚠️ No file uploaded.",
         );
 
       return res.json({
+
         type: "image",
+
         image:
           typeof out === "string"
             ? out
             : out?.url || "",
+
         text:
           "Ghibli image created",
+
         usedModel:
           "image-tool",
       });
     }
 
     // =====================================
-    // OCR OR VISION
+    // OCR / VISION PROMPT
     // =====================================
 
     const ask =
+
       lower.includes("ocr") ||
+
       lower.includes("extract text") ||
+
       lower.includes("read text") ||
+
       lower.includes("scan")
+
         ? `
 Extract all readable text from this image clearly.
 
@@ -283,6 +288,7 @@ Preserve:
 - tables
 - formatting
 `
+
         : `
 Analyze this image in detail.
 
@@ -295,63 +301,97 @@ Explain:
 - important details
 `;
 
+    // =====================================
+    // IMAGE BUFFER
+    // =====================================
+
     const imageBuffer =
-  file.buffer ||
 
-  (file.path
-    ? fs.readFileSync(file.path)
-    : null);
+      file.buffer ||
 
-if (!imageBuffer) {
+      (
+        file.path
+          ? fs.readFileSync(
+              file.path
+            )
+          : null
+      );
 
-  return res.status(400).json({
-    type: "text",
-    text:
-      "⚠️ Image buffer missing.",
-  });
-}
+    if (!imageBuffer) {
 
-const stream =
-  await streamGemini(
-    [
-      {
-        role: "user",
-        content: ask,
-      },
-    ],
-    imageBuffer,
-    file.mimetype
-  );
+      return res.status(400).json({
 
-    let fullResponse = "";
+        type: "text",
 
-    for await (const token of stream) {
-      fullResponse += token;
+        text:
+          "⚠️ Image buffer missing.",
+      });
     }
 
-    fullResponse =
-      cleanText(fullResponse);
+    // =====================================
+    // GEMINI VISION
+    // =====================================
+
+    const stream =
+      await streamGemini(
+
+        [
+          {
+            role: "user",
+            content: ask,
+          },
+        ],
+
+        imageBuffer,
+
+        file.mimetype
+      );
+
+    let fullReply = "";
+
+    for await (
+      const token of stream
+    ) {
+
+      if (
+        !token ||
+        typeof token !== "string"
+      ) {
+        continue;
+      }
+
+      fullReply += token;
+    }
+
+    // =====================================
+    // FINAL RESPONSE
+    // =====================================
 
     return res.json({
-      type: "vision",
+
+      type: "text",
+
       text:
-        fullResponse ||
-        "Could not analyze image.",
+        fullReply ||
+        "⚠️ No image response.",
+
       usedModel:
-        "gemini-vision",
+        "gemini",
     });
 
   } catch (err) {
 
     console.error(
-      "❌ Vision Error:",
+      "❌ IMAGE ERROR:",
       err.message
     );
 
-    return res.status(500).json({
+    return res.json({
+
       type: "text",
+
       text:
-        "⚠️ Failed to analyze image",
+        "⚠️ Failed to analyze image.",
     });
   }
 }
@@ -458,7 +498,7 @@ const extractedText =
             {
               role: "user",
               content:
-                `Summarize this document clearly:\n\n${extractedText}`,
+                `Summarize this document clearly:\n\n${extractedText.slice(0, 15000)}`,
             },
           ];
 
@@ -558,49 +598,32 @@ if (
       });
     }
 
-    // =========================
+     // =====================================
     // MEMORY
-    // =========================
-    
- const sensitivePatterns = [
-  "password",
-  "otp",
-  "api key",
-  "credit card",
-];
+    // =====================================
 
-const isSensitive =
-  sensitivePatterns.some((s) =>
-    lastText.toLowerCase().includes(s)
-  );
+    if (
+      userId &&
+      !isTemporaryChat &&
+      lastText
+    ) {
 
-if (
-  userId &&
-  !isTemporaryChat &&
-  lastText &&
-  !isSensitive
-) {
-      
-extractAndStoreMemory({
-  userId,
-  message: lastText,
-}).catch((err) => {
-
-  console.error(
-    "❌ Memory Extract:",
-    err.message
-  );
-});
-
+      extractAndStoreMemory({
+        userId,
+        message: lastText,
+      }).catch(console.error);
     }
 
-    let memoryPrompt = null;
+    let memoryPrompt =
+      null;
 
     if (
       userId &&
       !isTemporaryChat
     ) {
+
       try {
+
         const memories =
           await getUserMemory(
             userId,
@@ -611,6 +634,7 @@ extractAndStoreMemory({
           buildMemorySystemPrompt(
             memories
           );
+
       } catch (_) {}
     }
 
@@ -683,54 +707,56 @@ Make every reply useful, smart, and premium.
         : []),
       ...messages,
     ];
-
-    // =========================
+    // =====================================
     // CACHE
-    // =========================
-const cacheKey =
+    // =====================================
 
-  lastText
-    .toLowerCase()
-    .trim();
+    const cacheKey =
+      lastText
+        .toLowerCase()
+        .trim();
 
     const cached =
       getCache(cacheKey);
 
     if (cached) {
+
       return res.json({
         text: cached,
-        usedModel: "cache",
+        usedModel:
+          "cache",
       });
     }
 
-    // =========================
+    // =====================================
     // AI RESPONSE
-    // =========================
-    const {
-      stream,
-      usedModel,
-    } =
-      await getBestStream(
-        finalMessages
+    // =====================================
+
+    let fullResponse =
+      "";
+
+    for await (
+      let token of stream
+    ) {
+
+      token = String(
+        token || ""
       );
 
-    let fullResponse = "";
+      if (
+        !token.trim()
+      ) {
+        continue;
+      }
 
-    for await (let token of stream) {
+      token =
+        humanizeText(
+          token
+        );
 
-token =
-String(token || "");
-
-if (!token.trim()) {
-continue;
-}
-
-token =
-humanizeText(token);
-
-fullResponse += token;
-}
-
+      fullResponse +=
+        token;
+    }
 
     fullResponse =
       enhanceTextForSpeech(
@@ -744,12 +770,12 @@ fullResponse += token;
       );
 
     if (
-  !fullResponse ||
-!fullResponse.trim()
-) {
-  fullResponse =
-    "⚠️ AI returned empty response.";
-}
+      !fullResponse
+    ) {
+
+      fullResponse =
+        "⚠️ AI returned empty response.";
+    }
 
     setCache(
       cacheKey,
@@ -757,27 +783,36 @@ fullResponse += token;
     );
 
     return res.json({
-      text: fullResponse,
+
+      text:
+        fullResponse,
+
       usedModel,
+
       isPremium:
         user?.isPremium ||
         false,
+
       freeChatsLeft:
         user?.freeChatsLeft ??
         null,
     });
-    }
+  }
   
   } catch (err) {
+
     logError(
       "AI_FATAL",
       err
     );
 
     return res.status(500).json({
+
       error:
         "Something went wrong",
+
       text:
         "⚠️ Server error",
     });
-  }}
+  }
+}
