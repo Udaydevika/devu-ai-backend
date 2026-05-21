@@ -192,8 +192,5 @@ export async function streamOpenRouter(
     usedModel:
       model,
   };
- return {
-  stream: streamTokens(),
-  usedModel: model,
+ 
 };
-}
