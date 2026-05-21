@@ -1045,16 +1045,23 @@ ${out.text}`
     "⚠️ AI stream failed."
   );
 
-  console.log(
-  "🧠 MODEL:",
-  usedModel
-);
-
-  return done(
+ return done(
     res,
     ping
   );
 }
+
+ console.log("🧠 MODEL:", usedModel);
+
+console.log(
+"🧠 STREAM TYPE:",
+typeof stream,
+);
+
+console.log(
+"🧠 ASYNC ITERATOR:",
+typeof stream?.[Symbol.asyncIterator],
+);
 
 // ======================================
 // 🔥 STREAM TOKENS

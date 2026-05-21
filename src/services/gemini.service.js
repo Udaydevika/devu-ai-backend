@@ -200,5 +200,9 @@ if (!text) {
     }
   }
 
-  return streamTokens();
+  return {
+stream: streamTokens(),
+usedModel: "gemini-2.5-flash",
+};
+
 }
