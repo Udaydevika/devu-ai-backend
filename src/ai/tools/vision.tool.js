@@ -68,20 +68,22 @@ export async function handleVision(
   file.buffer ||
   fs.readFileSync(file.path);
 
-const stream =
+const ai =
   await streamGemini(
     messages,
     imageBuffer,
-        file.mimeType ||
-        file.mimetype ||
-        "image/jpeg"
-      );
+    file.mimetype ||
+    "image/jpeg"
+  );
 
-    let output = "";
+const stream =
+  ai?.stream || ai;
 
-    for await (
-      const token of stream
-    ) {
+let output = "";
+
+for await (
+  const token of stream
+) {
 
       output += token;
     }

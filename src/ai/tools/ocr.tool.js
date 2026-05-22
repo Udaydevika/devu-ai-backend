@@ -67,22 +67,22 @@ Preserve:
     // GEMINI OCR
     // =====================================
 
-    const stream =
-      await streamGemini(
+    const ai =
+  await streamGemini(
+    messages,
+    imageBuffer,
+    file.mimetype ||
+    "image/jpeg"
+  );
 
-        messages,
+const stream =
+  ai?.stream || ai;
 
-        imageBuffer,
+let output = "";
 
-        file.mimetype ||
-        "image/jpeg"
-      );
-
-    let output = "";
-
-    for await (
-      const token of stream
-    ) {
+for await (
+  const token of stream
+) {
 
       output += token;
     }

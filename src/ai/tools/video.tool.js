@@ -430,10 +430,10 @@ try {
           frames[i]
         );
 
-      const stream =
-        await withTimeout(
+      const ai =
+  await withTimeout(
 
-          streamGemini(
+    streamGemini(
             [
               {
                 role: "user",
@@ -451,9 +451,12 @@ try {
 
       let text = "";
 
-      for await (
-        const token of stream
-      ) {
+      const stream =
+  ai?.stream || ai;
+
+for await (
+  const token of stream
+) {
 
         text += token;
       }
@@ -638,8 +641,8 @@ try {
         frames[i]
       );
 
-    const stream =
-      await withTimeout(
+    const ai =
+  await withTimeout(
 
         streamGemini(
           [
@@ -659,9 +662,12 @@ try {
 
     let text = "";
 
-    for await (
-      const token of stream
-    ) {
+    const stream =
+  ai?.stream || ai;
+
+for await (
+  const token of stream
+) {
 
       text += token;
     }

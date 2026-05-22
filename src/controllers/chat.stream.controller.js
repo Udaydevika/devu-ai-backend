@@ -24,7 +24,7 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
 import { extractFrames }
-from "../utils/videoFrames.js";
+from "../utils/extractframes.js";
 
 
 // ==========================================
@@ -331,8 +331,10 @@ export const chatStreamController = [
 
   return {
 
-    name:
-      f.originalname,
+   name:
+  f.originalname ||
+  f.name ||
+  "file",
 
     originalname:
       f.originalname,
@@ -698,21 +700,64 @@ result =
       mimetype:
         file.mimetype,
       originalname:
-        file.originalname,
+  file.originalname ||
+  file.name,
     },
     prompt
   );
             }
 
-            send(
-  res,
-  result?.type || "text",
+   // ==================================
+// SEND IMAGE RESULT
+// ==================================
 
-  typeof result === "string"
-    ? result
-    : result?.text ||
-      "⚠️ Empty AI response."
-);
+if (
+
+  result?.type === "image" ||
+
+  result?.image ||
+
+  result?.url
+
+) {
+
+  const imageUrl =
+
+    result?.image ||
+
+    result?.url ||
+
+    result;
+
+  send(
+    res,
+    "image",
+    imageUrl
+  );
+
+  sendDownload(
+    res,
+    "Generated Image",
+    imageUrl,
+    "image"
+  );
+
+} else {
+
+  send(
+    res,
+
+    result?.type || "text",
+
+    typeof result === "string"
+
+      ? result
+
+      : result?.text ||
+
+        "⚠️ Empty AI response."
+  );
+}
 
             return done(
               res,
@@ -765,7 +810,7 @@ result =
 
               send(
                 res,
-                "text",
+                "audio",
                 out.transcript
               );
 
@@ -819,7 +864,7 @@ else if (
   ) ||
 
   mime.includes(
-    "mov"
+    "quicktime"
   ) ||
 
   mime.includes(
@@ -902,7 +947,8 @@ else if (
             "image/jpeg",
 
           originalname:
-            "video-frame.jpg",
+  file.originalname ||
+  "video-frame.jpg",
         },
         `${prompt}
 
@@ -963,8 +1009,16 @@ Analyze this video frame carefully and explain what is happening in the video.`
           ) ||
 
           mime.includes(
-            "document"
+            "pdf"
           ) ||
+
+          mime.includes(
+            "officedocument"
+          ) ||
+
+          mime.includes(
+            "msword"
+          ) ||  
 
           mime.includes(
             "word"
@@ -1014,9 +1068,12 @@ const out =
   await handleFile({
     buffer: file.buffer,
     mimetype:
-      file.mimetype,
+      file.mimetype ||
+      file.mimeType,
+
     originalname:
-      file.originalname,
+      file.originalname ||
+      file.name,
   });
 
 if (!out?.text) {
