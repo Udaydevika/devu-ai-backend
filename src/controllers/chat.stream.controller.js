@@ -24,7 +24,7 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
 import { extractFrames }
-from "../utils/extractframes.js";
+from "../utils/extractFrames.js";
 
 
 // ==========================================
@@ -899,10 +899,33 @@ else if (
     // EXTRACT VIDEO FRAMES
     // ================================
 
-    const frames =
-      await extractFrames(
-        file.path
-      );
+    let frames = [];
+
+try {
+
+  frames =
+    await extractFrames(
+      file.path
+    );
+
+} catch (err) {
+
+  console.error(
+    "FRAME EXTRACT ERROR:",
+    err
+  );
+
+  send(
+    res,
+    "text",
+    "⚠️ FFmpeg not installed."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
 
     if (
       !frames ||
@@ -1067,6 +1090,7 @@ if (
 const out =
   await handleFile({
     buffer: file.buffer,
+    path: file.path,
     mimetype:
       file.mimetype ||
       file.mimeType,

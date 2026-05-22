@@ -54,17 +54,17 @@ export async function handleVision(
       },
     ];
 
-    // =====================================
-    // GEMINI VISION
-    // =====================================
+   // =====================================
+// GEMINI VISION
+// =====================================
 
-    console.log(
+console.log(
   "🖼️ Vision file:",
-  file?.name,
-  file?.mimeType
+  file?.originalname,
+  file?.mimetype
 );
 
-    const imageBuffer =
+const imageBuffer =
   file.buffer ||
   fs.readFileSync(file.path);
 
@@ -76,20 +76,45 @@ const ai =
     "image/jpeg"
   );
 
+// =====================================
+// VALIDATE STREAM
+// =====================================
+
+if (
+  !ai ||
+  !ai.stream ||
+  typeof ai.stream[
+    Symbol.asyncIterator
+  ] !== "function"
+) {
+
+  return {
+    type: "text",
+    text:
+      "⚠️ Gemini vision unavailable.",
+  };
+}
+
 const stream =
-  ai?.stream || ai;
+  ai.stream;
 
 let output = "";
+
+// =====================================
+// STREAM TOKENS
+// =====================================
 
 for await (
   const token of stream
 ) {
 
-      output += token;
-    }
+  if (token) {
+    output += String(token);
+  }
+}
 
-    output =
-      output.trim();
+output =
+  output.trim();
 
     // =====================================
     // EMPTY RESPONSE

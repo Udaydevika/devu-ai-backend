@@ -5,7 +5,7 @@ import path from "path";
 import os from "os";
 
 import { extractFrames }
-from "../../utils/extractframes.js";
+from "../../utils/extractFrames.js";
 
 import { streamGemini }
 from "../../services/gemini.service.js";
@@ -215,12 +215,12 @@ export async function handleVideo(
       1024 /
       1024;
 
-    if (sizeMB > 25) {
+     if (sizeMB > 100) {
 
       return {
         type: "text",
         text:
-`⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 25MB.`,
+`⚠️ Video too large (${sizeMB.toFixed(1)}MB). Upload under 100MB.`,
       };
     }
 
@@ -451,8 +451,21 @@ try {
 
       let text = "";
 
-      const stream =
-  ai?.stream || ai;
+      if (
+  !ai ||
+  !ai.stream ||
+  typeof ai.stream[
+    Symbol.asyncIterator
+  ] !== "function"
+) {
+
+  throw new Error(
+    "Invalid Gemini stream"
+  );
+}
+
+const stream =
+  ai.stream;
 
 for await (
   const token of stream
@@ -673,14 +686,18 @@ for await (
     }
 
     notes.push(
+      scores.push(
+        await new Promise(
+  (r) =>
+    setTimeout(r, 500)
+)
       `Frame ${i + 1}: ${text}`
+      )
     );
   }
-
-  const summaryStream =
-    await withTimeout(
-
-      streamGemini([
+  const summaryAI =
+  await withTimeout(
+    streamGemini([
         {
           role: "user",
 
@@ -694,9 +711,19 @@ ${notes.join("\n").slice(0, 4000)}`,
 
   let summary = "";
 
-  for await (
-    const token of summaryStream
-  ) {
+  if (
+  !summaryAI ||
+  !summaryAI.stream
+) {
+
+  throw new Error(
+    "Summary AI failed"
+  );
+}
+
+for await (
+  const token of summaryAI.stream
+){
 
     summary += token;
   }

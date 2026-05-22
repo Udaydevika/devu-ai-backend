@@ -4,7 +4,11 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(
+    ffmpegPath
+  );
+}
 
 /**
  * ==========================================
@@ -49,11 +53,12 @@ export async function extractFrames(videoPath) {
                       outputDir
                     )
                     .filter(
-                      (f) =>
-                        f.endsWith(
-                          ".png"
-                        )
-                    )
+  (f) =>
+    f.endsWith(".png") ||
+    f.endsWith(".jpg") ||
+    f.endsWith(".jpeg")
+)
+                    
                     .map(
                       (f) =>
                         path.join(
