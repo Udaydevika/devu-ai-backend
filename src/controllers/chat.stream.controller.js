@@ -24,7 +24,7 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
 import { extractFrames }
-from "../utils/extractFrames.js";
+from "../utils/videoFrames.js";
 
 
 // ==========================================
@@ -854,147 +854,23 @@ if (
 // ====================================
 
 else if (
-
-  mime.startsWith(
-    "video/"
-  ) ||
-
-  mime.includes(
-    "mp4"
-  ) ||
-
-  mime.includes(
-    "quicktime"
-  ) ||
-
-  mime.includes(
-    "avi"
-  )
-
+  mime.startsWith("video/")
 ) {
 
   try {
 
-    // ================================
-    // FILE SAFETY
-    // ================================
-
-    if (
-      !file.path
-    ) {
-
-      send(
-        res,
-        "text",
-        "⚠️ Video path missing."
+    const out =
+      await handleVideo(
+        file,
+        prompt
       );
-
-      return done(
-        res,
-        ping
-      );
-    }
-
-    // ================================
-    // EXTRACT VIDEO FRAMES
-    // ================================
-
-    let frames = [];
-
-try {
-
-  frames =
-    await extractFrames(
-      file.path
-    );
-
-} catch (err) {
-
-  console.error(
-    "FRAME EXTRACT ERROR:",
-    err
-  );
-
-  send(
-    res,
-    "text",
-    "⚠️ FFmpeg not installed."
-  );
-
-  return done(
-    res,
-    ping
-  );
-}
-
-    if (
-      !frames ||
-      frames.length === 0
-    ) {
-
-      send(
-        res,
-        "text",
-        "⚠️ Failed to extract video frames."
-      );
-
-      return done(
-        res,
-        ping
-      );
-    }
-
-    // ================================
-    // FIRST FRAME
-    // ================================
-
-    const firstFrame =
-      frames[0];
-
-    const frameBuffer =
-      fs.readFileSync(
-        firstFrame
-      );
-
-    // ================================
-    // SEND FRAME TO VISION AI
-    // ================================
-
-    const result =
-      await handleVision(
-        {
-          buffer:
-            frameBuffer,
-
-          mimetype:
-            "image/jpeg",
-
-          originalname:
-  file.originalname ||
-  "video-frame.jpg",
-        },
-        `${prompt}
-
-Analyze this video frame carefully and explain what is happening in the video.`
-      );
-
-    // ================================
-    // RESPONSE
-    // ================================
 
     send(
       res,
-      result?.type ||
-        "text",
+      out?.type || "text",
 
-      typeof result ===
-      "string"
-
-        ? result
-
-        : result?.text ||
-
-          "⚠️ Video AI returned empty response."
+      out?.text ||
+      "⚠️ Video AI failed."
     );
 
     return done(
@@ -1005,14 +881,14 @@ Analyze this video frame carefully and explain what is happening in the video.`
   } catch (err) {
 
     console.error(
-      "VIDEO AI ERROR:",
+      "VIDEO ERROR:",
       err
     );
 
     send(
       res,
       "text",
-      "⚠️ Failed to analyze video."
+      "⚠️ Failed to process video."
     );
 
     return done(

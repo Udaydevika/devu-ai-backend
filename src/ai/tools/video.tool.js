@@ -5,7 +5,7 @@ import path from "path";
 import os from "os";
 
 import { extractFrames }
-from "../../utils/extractFrames.js";
+from "../../utils/videoFrames.js";
 
 import { streamGemini }
 from "../../services/gemini.service.js";
