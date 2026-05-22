@@ -1,5 +1,5 @@
 // src/controllers/chat.stream.controller.js
-
+import fs from "fs";
 import { getAIStream } from "../services/aiRouter.service.js";
 
 import { detectTool } from "../ai/toolRouter.js";
@@ -23,6 +23,8 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
+import { extractFrames }
+from "../utils/videoFrames.js";
 
 
 // ==========================================
@@ -293,30 +295,63 @@ export const chatStreamController = [
       // NORMALIZE FILES
       // ======================================
 
-    const files = rawFiles.map((f) => ({
+    const files = rawFiles.map((f) => {
 
-  name:
-    f.originalname,
+  let buffer = null;
 
-  originalname:
-    f.originalname,
+  // ======================================
+  // MEMORY STORAGE
+  // ======================================
 
-  mimetype:
-    f.mimetype,
+  if (f.buffer) {
 
-  mimeType:
-    f.mimetype,
+    buffer = f.buffer;
+  }
 
-  path:
-    f.path || null,
+  // ======================================
+  // DISK STORAGE
+  // ======================================
 
-  size:
-    f.size,
+  else if (f.path) {
 
-  // ✅ MEMORY STORAGE SAFE
-  buffer:
-    f.buffer || null,
-}));
+    try {
+
+      buffer = fs.readFileSync(
+        f.path
+      );
+
+    } catch (err) {
+
+      console.error(
+        "FILE READ ERROR:",
+        err
+      );
+    }
+  }
+
+  return {
+
+    name:
+      f.originalname,
+
+    originalname:
+      f.originalname,
+
+    mimetype:
+      f.mimetype,
+
+    mimeType:
+      f.mimetype,
+
+    path:
+      f.path || null,
+
+    size:
+      f.size,
+
+    buffer,
+  };
+});
 
       const file =
         files[0];
@@ -640,11 +675,33 @@ export const chatStreamController = [
             } else {
 
               // Vision AI
-              result =
-                await handleVision(
-                  file,
-                  prompt
-                );
+              if (
+  !file.buffer
+) {
+
+  send(
+    res,
+    "text",
+    "⚠️ Image buffer missing."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
+
+result =
+  await handleVision(
+    {
+      buffer: file.buffer,
+      mimetype:
+        file.mimetype,
+      originalname:
+        file.originalname,
+    },
+    prompt
+  );
             }
 
             send(
@@ -747,91 +804,154 @@ export const chatStreamController = [
           }
         }
 
-        // ====================================
-        // 🎬 VIDEO
-        // ====================================
+       // ====================================
+// 🎬 VIDEO AI
+// ====================================
 
-        else if (
+else if (
 
-          mime.startsWith(
-            "video/"
-          ) ||
+  mime.startsWith(
+    "video/"
+  ) ||
 
-          mime.includes(
-            "mp4"
-          ) ||
+  mime.includes(
+    "mp4"
+  ) ||
 
-          mime.includes(
-            "mov"
-          ) ||
+  mime.includes(
+    "mov"
+  ) ||
 
-          mime.includes(
-            "avi"
-          )
+  mime.includes(
+    "avi"
+  )
 
-        ) {
+) {
 
-          try {
+  try {
 
-            const out =
-              await handleVideo(
-                file,
-                prompt
-              );
+    // ================================
+    // FILE SAFETY
+    // ================================
 
-            if (
-              out?.type ===
-              "video"
-            ) {
+    if (
+      !file.path
+    ) {
 
-              send(
-                res,
-                "video",
-                out.url
-              );
+      send(
+        res,
+        "text",
+        "⚠️ Video path missing."
+      );
 
-              sendDownload(
-                res,
-                "Video",
-                out.url,
-                "video"
-              );
+      return done(
+        res,
+        ping
+      );
+    }
 
-            } else {
+    // ================================
+    // EXTRACT VIDEO FRAMES
+    // ================================
 
-              send(
-                res,
-                "text",
-                out?.text ||
-                "⚠️ Video processing failed."
-              );
-            }
+    const frames =
+      await extractFrames(
+        file.path
+      );
 
-            return done(
-              res,
-              ping
-            );
+    if (
+      !frames ||
+      frames.length === 0
+    ) {
 
-          } catch (err) {
+      send(
+        res,
+        "text",
+        "⚠️ Failed to extract video frames."
+      );
 
-            console.error(
-              "VIDEO ERROR:",
-              err
-            );
+      return done(
+        res,
+        ping
+      );
+    }
 
-            send(
-              res,
-              "text",
-              "⚠️ Failed to process video."
-            );
+    // ================================
+    // FIRST FRAME
+    // ================================
 
-            return done(
-              res,
-              ping
-            );
-          }
-        }
+    const firstFrame =
+      frames[0];
 
+    const frameBuffer =
+      fs.readFileSync(
+        firstFrame
+      );
+
+    // ================================
+    // SEND FRAME TO VISION AI
+    // ================================
+
+    const result =
+      await handleVision(
+        {
+          buffer:
+            frameBuffer,
+
+          mimetype:
+            "image/jpeg",
+
+          originalname:
+            "video-frame.jpg",
+        },
+        `${prompt}
+
+Analyze this video frame carefully and explain what is happening in the video.`
+      );
+
+    // ================================
+    // RESPONSE
+    // ================================
+
+    send(
+      res,
+      result?.type ||
+        "text",
+
+      typeof result ===
+      "string"
+
+        ? result
+
+        : result?.text ||
+
+          "⚠️ Video AI returned empty response."
+    );
+
+    return done(
+      res,
+      ping
+    );
+
+  } catch (err) {
+
+    console.error(
+      "VIDEO AI ERROR:",
+      err
+    );
+
+    send(
+      res,
+      "text",
+      "⚠️ Failed to analyze video."
+    );
+
+    return done(
+      res,
+      ping
+    );
+  }
+}
         // ====================================
         // 📄 DOCUMENTS
         // ====================================
@@ -874,8 +994,30 @@ export const chatStreamController = [
 
           try {
 
+if (
+  !file.buffer
+) {
+
+  send(
+    res,
+    "text",
+    "⚠️ Document buffer missing."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
+
 const out =
-  await handleFile(file);
+  await handleFile({
+    buffer: file.buffer,
+    mimetype:
+      file.mimetype,
+    originalname:
+      file.originalname,
+  });
 
 if (!out?.text) {
 

@@ -43,13 +43,38 @@ switch (tool) {
   // =====================================
 
   case "vision":
-  case "ocr":
+case "ocr": {
+
+  // ====================================
+  // GEMINI PRIMARY
+  // ====================================
+
+  try {
 
     return await streamGemini(
       messages,
       extra.imageBuffer,
       extra.mimeType
     );
+
+  } catch (err) {
+
+    console.error(
+      "GEMINI VISION FAILED:",
+      err?.message || err
+    );
+
+    // ====================================
+    // GPT4o FALLBACK
+    // ====================================
+
+    return await streamOpenRouter(
+      messages,
+      [],
+      "openai/gpt-4o"
+    );
+  }
+}
 
   // =====================================
   // 🎨 IMAGE AI → HF
@@ -58,22 +83,79 @@ switch (tool) {
   case "image_generation":
 case "image_variation": {
 
-async function* fakeStream() {
+  async function* fakeStream() {
 
-const result =
-  await streamHuggingFace(
-    messages
-  );
+    try {
 
-yield typeof result === "string"
-  ? result
-  : JSON.stringify(result);
-}
+      const result =
+        await streamHuggingFace(
+          messages
+        );
 
-return {
-stream: fakeStream(),
-usedModel: "huggingface",
-};
+      // ==============================
+      // STRING
+      // ==============================
+
+      if (
+        typeof result ===
+        "string"
+      ) {
+
+        yield result;
+      }
+
+      // ==============================
+      // IMAGE URL
+      // ==============================
+
+      else if (
+        result?.url
+      ) {
+
+        yield result.url;
+      }
+
+      // ==============================
+      // TEXT RESPONSE
+      // ==============================
+
+      else if (
+        result?.text
+      ) {
+
+        yield result.text;
+      }
+
+      // ==============================
+      // UNKNOWN
+      // ==============================
+
+      else {
+
+        yield
+          "⚠️ Image AI failed.";
+      }
+
+    } catch (err) {
+
+      console.error(
+        "HF STREAM ERROR:",
+        err
+      );
+
+      yield
+        "⚠️ HuggingFace failed.";
+    }
+  }
+
+  return {
+
+    stream:
+      fakeStream(),
+
+    usedModel:
+      "huggingface",
+  };
 }
 
   // =====================================
