@@ -80,11 +80,15 @@ function send(res, type, content) {
   try {
 
     res.write(
-      `data: ${JSON.stringify({
-        type,
-        content,
-      })}\n\n`
-    );
+`data: ${JSON.stringify({
+    type,
+    content,
+  })}\n\n`
+);
+
+// ✅ IMPORTANT
+res.flush?.();
+
 
   } catch (err) {
 
@@ -1021,15 +1025,20 @@ ${out.text}`
       // 💬 NORMAL AI CHAT
       // ======================================
   
-      const {
-  stream,
-  usedModel,
-} = await getAIStream(
-  tool,
-  Array.isArray(messages)
-    ? messages
-    : []
+    const aiResult =
+await getAIStream(
+tool,
+Array.isArray(messages)
+? messages
+: []
 );
+
+const stream =
+aiResult?.stream;
+
+const usedModel =
+aiResult?.usedModel ||
+"unknown";
 
 
       let hasResponse =
@@ -1054,35 +1063,53 @@ ${out.text}`
  console.log("🧠 MODEL:", usedModel);
 
 console.log(
-"🧠 STREAM TYPE:",
-typeof stream,
+"🧠 STREAM:",
+stream
 );
 
 console.log(
-"🧠 ASYNC ITERATOR:",
-typeof stream?.[Symbol.asyncIterator],
+"🧠 STREAM TYPE:",
+typeof stream
 );
+
+console.log(
+"🧠 ITERATOR:",
+typeof stream?.[
+Symbol.asyncIterator
+]
+);
+
 
 // ======================================
 // 🔥 STREAM TOKENS
 // ======================================
 if (
-  !stream ||
-  typeof stream[Symbol.asyncIterator]
-    !== "function"
+
+!stream ||
+
+typeof stream?.[
+Symbol.asyncIterator
+] !== "function"
+
 ) {
 
-  send(
-    res,
-    "text",
-    "⚠️ Invalid AI stream."
-  );
+console.error(
+"❌ INVALID STREAM:",
+stream
+);
 
-  return done(
-    res,
-    ping
-  );
+send(
+res,
+"text",
+"⚠️ Invalid AI stream."
+);
+
+return done(
+res,
+ping
+);
 }
+  
 try {
 
 for await (const tokenRaw of stream) {
@@ -1106,9 +1133,13 @@ hasResponse = true;
 chunk += token;
 
 if (
-  chunk.length > 120 ||
-  token.includes("\n")
-) {
+
+chunk.length > 40 ||
+
+token.includes("\n")
+
+)
+ {
 
   send(
     res,

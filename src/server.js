@@ -76,7 +76,25 @@ app.use(cors({
     "Authorization"
   ],
 }));
-app.use(compression());
+app.use(
+compression({
+filter: (req, res) => {
+  if (
+    req.headers.accept ===
+    "text/event-stream"
+  ) {
+    return false;
+  }
+
+  return compression.filter(
+    req,
+    res
+  );
+},
+
+})
+);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({
   extended: true,

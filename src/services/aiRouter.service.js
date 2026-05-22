@@ -13,7 +13,6 @@ extra = {}
 
 try {
 
-```
 switch (tool) {
 
   // =====================================
@@ -57,11 +56,25 @@ switch (tool) {
   // =====================================
 
   case "image_generation":
-  case "image_variation":
+case "image_variation": {
 
-    return await streamHuggingFace(
-      messages
-    );
+async function* fakeStream() {
+
+const result =
+  await streamHuggingFace(
+    messages
+  );
+
+yield typeof result === "string"
+  ? result
+  : JSON.stringify(result);
+}
+
+return {
+stream: fakeStream(),
+usedModel: "huggingface",
+};
+}
 
   // =====================================
   // 🌐 SEARCH → GPT-4o
@@ -97,11 +110,9 @@ switch (tool) {
       messages
     );
 }
-```
 
 } catch (err) {
 
-```
 console.error(
   "❌ AI ROUTER ERROR:",
   err?.message || err
@@ -125,7 +136,7 @@ try {
     usedModel: "fallback-error",
   };
 }
-```
+
 
 }
 }
