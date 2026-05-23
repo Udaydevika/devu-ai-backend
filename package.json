@@ -26,8 +26,10 @@
     "openai": "^4.104.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
+    "pdf2pic": "^3.2.0",
     "pdfjs-dist": "^5.7.284",
     "react-native-document-picker": "^9.3.1",
-    "react-native-image-picker": "^8.2.1"
+    "react-native-image-picker": "^8.2.1",
+    "tesseract.js": "^7.0.0"
   }
 }

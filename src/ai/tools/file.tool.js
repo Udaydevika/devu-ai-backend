@@ -2,6 +2,8 @@
 
 import fs from "fs";
 import mammoth from "mammoth";
+import Tesseract from "tesseract.js";
+import { fromPath } from "pdf2pic";
 
 
 async function extractPdfText(buffer) {
@@ -26,6 +28,48 @@ async function extractPdfText(buffer) {
 
     console.error(
       "PDF ERROR:",
+      err
+    );
+
+    return "";
+  }
+}
+
+async function extractScannedPdfText(filePath) {
+
+  try {
+
+    const convert =
+      fromPath(filePath, {
+
+        density: 150,
+
+        saveFilename: "temp",
+
+        savePath: "./uploads",
+
+        format: "png",
+
+        width: 1200,
+
+        height: 1600,
+      });
+
+    const page =
+      await convert(1);
+
+    const result =
+      await Tesseract.recognize(
+        page.path,
+        "eng"
+      );
+
+    return result?.data?.text || "";
+
+  } catch (err) {
+
+    console.error(
+      "OCR ERROR:",
       err
     );
 
@@ -105,20 +149,39 @@ export async function handleFile(file) {
       text?.length
     );
 
-    if (
-      !text ||
-      text.trim().length < 5
-    ) {
+   if (
+  !text ||
+  text.trim().length < 5
+) {
 
-      return {
+  console.log(
+    "🔍 Trying OCR..."
+  );
 
-        type: "text",
+  text =
+    await extractScannedPdfText(
+      file.path
+    );
 
-        text:
-          "⚠️ This PDF has no selectable text. It may be a scanned/image PDF.",
-      };
-    }
+  console.log(
+    "📝 OCR Length:",
+    text?.length
+  );
 
+  if (
+    !text ||
+    text.trim().length < 5
+  ) {
+
+    return {
+
+      type: "text",
+
+      text:
+        "⚠️ Could not extract text from scanned PDF.",
+    };
+  }
+}
   } catch (err) {
 
     console.error(
