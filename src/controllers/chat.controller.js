@@ -332,26 +332,25 @@ Explain:
     // GEMINI VISION
     // =====================================
 
-    const stream =
-      await streamGemini(
+    const ai =
+  await streamGemini(
+    [
+      {
+        role: "user",
+        content: ask,
+      },
+    ],
+    imageBuffer,
+    file.mimetype
+  );
 
-        [
-          {
-            role: "user",
-            content: ask,
-          },
-        ],
+const stream = ai.stream;
 
-        imageBuffer,
+let fullReply = "";
 
-        file.mimetype
-      );
-
-    let fullReply = "";
-
-    for await (
-      const token of stream
-    ) {
+for await (
+  const token of stream
+) {
 
       if (
         !token ||

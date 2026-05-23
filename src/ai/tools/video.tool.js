@@ -692,14 +692,29 @@ try {
     let text = "";
 
     const stream =
-  ai?.stream || ai;
+  ai?.stream;
+
+if (
+  !stream ||
+  typeof stream[
+    Symbol.asyncIterator
+  ] !== "function"
+) {
+
+  throw new Error(
+    "Invalid Gemini stream"
+  );
+}
 
 for await (
   const token of stream
 ) {
 
-      text += token;
-    }
+  text +=
+    typeof token === "string"
+      ? token
+      : token?.text || "";
+}
 
     await new Promise(
   (r) => setTimeout(r, 500)
@@ -736,8 +751,7 @@ ${notes.join("\n").slice(0, 4000)}`,
 }
 
 const summaryStream =
-  summaryAI?.stream ||
-  summaryAI;
+  summaryAI?.stream;
 
 if (
   summaryStream &&
