@@ -1,14 +1,34 @@
 // src/ai/tools/file.tool.js
 
 import fs from "fs";
-import { createRequire } from "module";
 import mammoth from "mammoth";
 
-// ==========================================
-// ✅ pdf-parse ESM SAFE FIX
-// ==========================================
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+
+async function extractPdfText(buffer) {
+
+  try {
+
+    const pdfParseModule =
+      await import("pdf-parse");
+
+    const pdfParse =
+      pdfParseModule.default;
+
+    const data =
+      await pdfParse(buffer);
+
+    return data?.text || "";
+
+  } catch (err) {
+
+    console.error(
+      "PDF ERROR:",
+      err
+    );
+
+    return "";
+  }
+}
 
 /**
  * ==========================================
@@ -62,11 +82,10 @@ export async function handleFile(file) {
 
 try {
 
-  const data =
-    await pdfParse(buffer);
-
   text =
-    data?.text || "";
+  await extractPdfText(
+    buffer
+  );
 
 } catch {
 
@@ -139,7 +158,10 @@ try {
     // ======================================
     // EMPTY CHECK
     // ======================================
-    if (!text) {
+    if (
+  !text ||
+  text.trim().length < 5
+) {
 
       return {
         type: "text",

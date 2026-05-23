@@ -22,7 +22,7 @@ router.post(
   ensureUser,
   freeChatLimiter,
 
-   upload.array("files", 10),
+   upload.array("files"),
    
   chatController
 );
@@ -43,7 +43,7 @@ router.post(
     next();
   },
 
-  upload.array("files", 10),
+  upload.array("files"),
 
   chatController
 );
@@ -60,7 +60,7 @@ router.post(
   ensureUser,
   freeChatLimiter,
 
-  upload.array("files", 10),
+  upload.single("file"),
 
   ...chatStreamController
 );

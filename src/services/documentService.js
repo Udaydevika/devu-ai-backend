@@ -1,10 +1,6 @@
-import { createRequire } from "module";
 import mammoth from "mammoth";
 import axios from "axios";
 
-// ✅ FIX pdf-parse (ESM safe)
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
 
 // =========================
 // 📄 TEXT EXTRACTION (FIXED)
@@ -17,9 +13,18 @@ export async function extractTextFromFile(buffer, mimeType) {
     // 📄 PDF
     // =========================
     if (mimeType === "application/pdf") {
-      const data = await pdfParse(buffer);
-      return data.text || "";
-    }
+
+  const pdfParseModule =
+    await import("pdf-parse");
+
+  const pdfParse =
+    pdfParseModule.default;
+
+  const data =
+    await pdfParse(buffer);
+
+  return data?.text || "";
+}
 
     // =========================
     // 📄 DOCX
@@ -51,7 +56,10 @@ export async function extractTextFromFile(buffer, mimeType) {
 // =========================
 export async function summarizeDocument(text) {
   try {
-    if (!text || text.trim().length === 0) {
+    if (
+  !text ||
+  text.trim().length < 5
+) {
       return "⚠️ No readable content found in document.";
     }
 
