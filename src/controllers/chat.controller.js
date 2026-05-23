@@ -516,7 +516,8 @@ const extractedText =
           });
         }
 
-        // 🎬 VIDEO
+      
+// 🎬 VIDEO
 if (
 
   file.mimetype?.startsWith("video/") ||
@@ -529,18 +530,27 @@ if (
 
 ) {
 
+  console.log(
+    "🎬 VIDEO DETECTED:",
+    file.originalname
+  );
+
   const result =
     await handleVideo(
       file,
       lastText
     );
 
+  console.log(
+    "🎬 VIDEO RESULT:",
+    result
+  );
+
   // ✅ STRING RESPONSE
   if (
     typeof result === "string"
   ) {
 
-    // URL video
     if (
       result.startsWith("http")
     ) {
@@ -554,7 +564,6 @@ if (
       });
     }
 
-    // analysis text
     return res.json({
       type: "text",
       text: result,
@@ -565,6 +574,7 @@ if (
 
   // ✅ OBJECT RESPONSE
   return res.json({
+
     type:
       result?.type || "text",
 
@@ -578,9 +588,8 @@ if (
     usedModel:
       "video-tool",
   });
-  }
 }
-    
+      }
     // =========================
     // NEWS / SEARCH
     // =========================
@@ -804,8 +813,7 @@ Make every reply useful, smart, and premium.
         null,
     });
   }
-  
-  } catch (err) {
+ } catch (err) {
 
     logError(
       "AI_FATAL",
@@ -821,4 +829,4 @@ Make every reply useful, smart, and premium.
         "⚠️ Server error",
     });
   }
-}
+  }

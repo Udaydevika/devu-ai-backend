@@ -615,24 +615,24 @@ if (
 
 let frames = [];
 
-const cleanupFrames =
-  () => {
+const cleanupFrames = () => {
 
-    try {
+  try {
 
-      for (const f of frames) {
+    for (const f of frames) {
 
-        safeDelete(f);
-      }
+      safeDelete(f);
+    }
 
-    } catch (_) {}
-  };
+  } catch (_) {}
+};
 
 try {
 
   frames =
-    await extractFrames(
-      tempPath
+    await withTimeout(
+      extractFrames(tempPath),
+      15000
     );
 
   if (
@@ -653,7 +653,7 @@ try {
       type: "video",
       url,
       text:
-        "🎬 Video uploaded.",
+        "🎬 Video uploaded successfully.",
     };
   }
 
@@ -788,7 +788,7 @@ ${summary}`
   cleanupFrames();
 }
 
-  } catch (err) {
+}catch (err) {
 
     console.error(
       "❌ VIDEO TOOL ERROR:",

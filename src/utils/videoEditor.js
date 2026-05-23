@@ -5,8 +5,12 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobe.path);
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
+}
+if (ffprobe.path) {
+  ffmpeg.setFfprobePath(ffprobe.path);
+}
 
 /**
  * ==========================================

@@ -182,7 +182,8 @@ const uploadsPath = path.join(
 
 // Serve public files
 app.use(
-  express.static(publicPath)
+  "/generated",
+  express.static("public/generated")
 );
 
 

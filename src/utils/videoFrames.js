@@ -8,11 +8,13 @@ import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobe from "ffprobe-static";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
+}
 
-ffmpeg.setFfprobePath(
-  ffprobe.path
-);
+if (ffprobe.path) {
+  ffmpeg.setFfprobePath(ffprobe.path);
+}
 
 export async function extractFrames(
   videoPath
