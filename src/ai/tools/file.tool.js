@@ -12,13 +12,15 @@ async function extractPdfText(buffer) {
       await import("pdf-parse");
 
     const pdfParse =
-  pdfParseModule.default ||
-  pdfParseModule;
+      pdfParseModule.default ||
+      pdfParseModule;
 
     const data =
       await pdfParse(buffer);
 
-    return data?.text || "";
+    return String(
+      data?.text || ""
+    );
 
   } catch (err) {
 
@@ -76,24 +78,63 @@ export async function handleFile(file) {
     // ======================================
     // PDF
     // ======================================
+   if (
+  mime.includes("pdf") ||
+  name.endsWith(".pdf")
+) {
+
+  try {
+
+    console.log(
+      "📄 Reading PDF:",
+      name
+    );
+
+    console.log(
+      "📦 PDF Size:",
+      buffer?.length
+    );
+
+    text =
+      await extractPdfText(
+        buffer
+      );
+
+    console.log(
+      "📄 Extracted Length:",
+      text?.length
+    );
+
     if (
-      mime.includes("pdf") ||
-      name.endsWith(".pdf")
+      !text ||
+      text.trim().length < 5
     ) {
 
-try {
+      return {
 
-  text =
-  await extractPdfText(
-    buffer
-  );
+        type: "text",
 
-} catch {
-
-  text =
-    "⚠️ Failed to read PDF.";
-}
+        text:
+          "⚠️ This PDF has no selectable text. It may be a scanned/image PDF.",
+      };
     }
+
+  } catch (err) {
+
+    console.error(
+      "PDF READ ERROR:",
+      err
+    );
+
+    return {
+
+      type: "text",
+
+      text:
+        "⚠️ Failed to read PDF.",
+    };
+  }
+}
 
     // ======================================
     // DOCX
