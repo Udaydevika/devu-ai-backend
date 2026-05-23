@@ -2,7 +2,7 @@
 
 import fs from "fs";
 import path from "path";
-import pdfParse from "pdf-parse";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 /**
