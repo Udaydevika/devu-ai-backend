@@ -685,15 +685,13 @@ for await (
       text += token;
     }
 
-    notes.push(
-      scores.push(
-        await new Promise(
-  (r) =>
-    setTimeout(r, 500)
-)
-      `Frame ${i + 1}: ${text}`
-      )
-    );
+    await new Promise(
+  (r) => setTimeout(r, 500)
+);
+
+notes.push(
+  `Frame ${i + 1}: ${text}`
+);
   }
   const summaryAI =
   await withTimeout(

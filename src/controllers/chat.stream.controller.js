@@ -23,8 +23,6 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
-import { extractFrames }
-from "../utils/videoFrames.js";
 
 
 // ==========================================
@@ -865,13 +863,35 @@ else if (
         prompt
       );
 
+    if (
+  out?.type === "video"
+) {
+
+  send(
+    res,
+    "video",
+    out.url
+  );
+
+  if (out?.text) {
+
     send(
       res,
-      out?.type || "text",
-
-      out?.text ||
-      "⚠️ Video AI failed."
+      "text",
+      out.text
     );
+  }
+
+} else {
+
+  send(
+    res,
+    out?.type || "text",
+
+    out?.text ||
+    "⚠️ Video AI failed."
+  );
+}
 
     return done(
       res,
@@ -902,10 +922,6 @@ else if (
         // ====================================
 
         else if (
-
-          mime.includes(
-            "pdf"
-          ) ||
 
           mime.includes(
             "pdf"
