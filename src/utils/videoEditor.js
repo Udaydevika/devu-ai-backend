@@ -1,10 +1,12 @@
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
+import ffprobe from "ffprobe-static";
 import path from "path";
 import fs from "fs";
 import os from "os";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobe.path);
 
 /**
  * ==========================================
