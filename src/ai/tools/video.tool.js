@@ -42,7 +42,7 @@ const PUBLIC_DIR = path.join(
 const BASE_URL =
 process.env.PUBLIC_URL
   ? `${process.env.PUBLIC_URL}/generated`
-  : "/generated";
+  : "http://localhost:3000/generated";
 
 // ==========================================
 // 📂 ENSURE DIRECTORY
