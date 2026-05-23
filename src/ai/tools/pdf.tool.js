@@ -2,20 +2,31 @@
 
 import fs from "fs";
 import path from "path";
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+} from "pdf-lib";
 
 /**
  * ==========================================
  * 🔥 DevU AI PDF TOOL
- * Supports:
- * ✅ Create notes PDF
- * ✅ Resume PDF
- * ✅ OCR text to PDF
- * ✅ AI summary to PDF
+ *
+ * Features:
+ * ✅ Create PDF
+ * ✅ Read PDF
+ * ✅ Extract text
+ * ✅ AI summary support
+ * ✅ Resume PDF support
+ * ✅ Render + Node 24 compatible
+ * ✅ ESM compatible
  * ==========================================
  */
 
+// ==========================================
+// CREATE PDF
+// ==========================================
 export async function createPDF(
   title = "DevU AI File",
   content = ""
@@ -43,6 +54,9 @@ export async function createPDF(
     const { height } =
       page.getSize();
 
+    // =========================
+    // TITLE
+    // =========================
     page.drawText(title, {
       x: 40,
       y: height - 50,
@@ -55,30 +69,49 @@ export async function createPDF(
       ),
     });
 
+    // =========================
+    // CONTENT
+    // =========================
     const lines =
       String(content)
-        .match(
-          /.{1,90}/g
-        ) || [];
+        .replace(/\r/g, "")
+        .split("\n");
 
     let y =
       height - 90;
 
-    for (const line of lines) {
-      if (y < 50) {
-        break;
+    for (const rawLine of lines) {
+
+      const chunks =
+        rawLine.match(
+          /.{1,90}/g
+        ) || [""];
+
+      for (const line of chunks) {
+
+        if (y < 50) {
+          break;
+        }
+
+        page.drawText(line, {
+          x: 40,
+          y,
+          size: 11,
+          font,
+          color: rgb(
+            0,
+            0,
+            0
+          ),
+        });
+
+        y -= 16;
       }
-
-      page.drawText(line, {
-        x: 40,
-        y,
-        size: 11,
-        font,
-      });
-
-      y -= 16;
     }
 
+    // =========================
+    // SAVE PDF
+    // =========================
     const bytes =
       await pdfDoc.save();
 
@@ -93,16 +126,11 @@ export async function createPDF(
       );
 
     if (
-      !fs.existsSync(
-        dir
-      )
+      !fs.existsSync(dir)
     ) {
-      fs.mkdirSync(
-        dir,
-        {
-          recursive: true,
-        }
-      );
+      fs.mkdirSync(dir, {
+        recursive: true,
+      });
     }
 
     const fullPath =
@@ -116,27 +144,37 @@ export async function createPDF(
       bytes
     );
 
-    return `${process.env.PUBLIC_URL}/generated/${fileName}`;
+    const base =
+      process.env.PUBLIC_URL ||
+      "http://localhost:3000";
+
+    return `${base}/generated/${fileName}`;
+
   } catch (err) {
+
     console.error(
-      "PDF Tool Error:",
-      err.message
+      "PDF CREATE ERROR:",
+      err
     );
 
     return null;
   }
 }
 
+// ==========================================
+// READ PDF
+// ==========================================
 export async function readPDF(
   file
 ) {
-
   try {
 
+    // =========================
+    // VALIDATE
+    // =========================
     if (
       !file?.path
     ) {
-
       return {
         type: "text",
         text:
@@ -144,11 +182,29 @@ export async function readPDF(
       };
     }
 
+    // =========================
+    // READ BUFFER
+    // =========================
     const buffer =
       fs.readFileSync(
         file.path
       );
 
+    // =========================
+    // DYNAMIC IMPORT FIX
+    // NODE 24 + ESM FIX
+    // =========================
+    const pdfParseModule =
+      await import(
+        "pdf-parse"
+      );
+
+    const pdfParse =
+      pdfParseModule.default;
+
+    // =========================
+    // PARSE PDF
+    // =========================
     const data =
       await pdfParse(
         buffer
@@ -157,8 +213,10 @@ export async function readPDF(
     const text =
       data?.text?.trim();
 
+    // =========================
+    // EMPTY PDF
+    // =========================
     if (!text) {
-
       return {
         type: "text",
         text:
@@ -166,6 +224,9 @@ export async function readPDF(
       };
     }
 
+    // =========================
+    // SUCCESS
+    // =========================
     return {
       type: "text",
       text,
