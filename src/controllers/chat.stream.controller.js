@@ -23,6 +23,10 @@ import { generateResume } from "../ai/tools/resume.tool.js";
 
 import { handleVision } from "../ai/tools/vision.tool.js";
 import { handleVideo } from "../ai/tools/video.tool.js";
+import {
+  readPDF
+}
+from "../ai/tools/pdf.tool.js";
 
 
 // ==========================================
@@ -917,124 +921,135 @@ else if (
     );
   }
 }
-        // ====================================
-        // 📄 DOCUMENTS
-        // ====================================
+        
 
-        else if (
+       // ====================================
+       // 📄 DOCUMENTS / PDF / TXT / DOCX
+       // ====================================
 
-          mime.includes(
-            "pdf"
-          ) ||
+else if (
 
-          mime.includes(
-            "officedocument"
-          ) ||
+  mime.includes("pdf") ||
 
-          mime.includes(
-            "msword"
-          ) ||  
+  mime.includes("officedocument") ||
 
-          mime.includes(
-            "word"
-          ) ||
+  mime.includes("msword") ||
 
-          mime.includes(
-            "sheet"
-          ) ||
+  mime.includes("word") ||
 
-          mime.includes(
-            "excel"
-          ) ||
+  mime.includes("sheet") ||
 
-          mime.includes(
-            "text"
-          ) ||
+  mime.includes("excel") ||
 
-          mime.includes(
-            "csv"
-          ) ||
+  mime.includes("text") ||
 
-          mime.includes(
-            "json"
-          )
+  mime.includes("csv") ||
 
-        ) {
+  mime.includes("json")
 
-          try {
-
-if (
-  !file.buffer
 ) {
 
-  send(
-    res,
-    "text",
-    "⚠️ Document buffer missing."
-  );
+  try {
 
-  return done(
-    res,
-    ping
-  );
+    if (
+      !file.buffer &&
+      !file.path
+    ) {
+
+      send(
+        res,
+        "text",
+        "⚠️ Document buffer missing."
+      );
+
+      return done(
+        res,
+        ping
+      );
+    }
+
+    const out =
+      await handleFile({
+
+        buffer:
+          file.buffer ||
+
+          fs.readFileSync(
+            file.path
+          ),
+
+        path:
+          file.path,
+
+        mimetype:
+          file.mimetype ||
+
+          file.mimeType,
+
+        originalname:
+          file.originalname ||
+
+          file.name,
+      });
+
+    // ===============================
+    // FAILED
+    // ===============================
+
+    if (
+      !out ||
+      !out.text
+    ) {
+
+      send(
+        res,
+        "text",
+        "⚠️ Failed to read PDF."
+      );
+
+    } else {
+
+      // =============================
+      // SUCCESS
+      // =============================
+
+      send(
+        res,
+        "text",
+
+`📄 ${
+  out.fileName ||
+  "Document"
 }
-
-const out =
-  await handleFile({
-    buffer: file.buffer,
-    path: file.path,
-    mimetype:
-      file.mimetype ||
-      file.mimeType,
-
-    originalname:
-      file.originalname ||
-      file.name,
-  });
-
-if (!out?.text) {
-
-  send(
-    res,
-    "text",
-    "⚠️ Failed to read document."
-  );
-
-} else {
-
-  send(
-    res,
-    "text",
-
-`📄 ${out.fileName || "Document"}
 
 ${out.text}`
-  );
+      );
+    }
+
+    return done(
+      res,
+      ping
+    );
+
+  } catch (err) {
+
+    console.error(
+      "DOCUMENT ERROR:",
+      err
+    );
+
+    send(
+      res,
+      "text",
+      "⚠️ Failed to process document."
+    );
+
+    return done(
+      res,
+      ping
+    );
+  }
 }
-            return done(
-              res,
-              ping
-            );
-
-          } catch (err) {
-
-            console.error(
-              "DOCUMENT ERROR:",
-              err
-            );
-
-            send(
-              res,
-              "text",
-              "⚠️ Failed to process document."
-            );
-
-            return done(
-              res,
-              ping
-            );
-          }
-        }
 
         // ====================================
         // ❌ UNSUPPORTED

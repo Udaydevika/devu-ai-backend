@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import path from "path";
+import pdfParse from "pdf-parse";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 /**
@@ -123,5 +124,64 @@ export async function createPDF(
     );
 
     return null;
+  }
+}
+
+export async function readPDF(
+  file
+) {
+
+  try {
+
+    if (
+      !file?.path
+    ) {
+
+      return {
+        type: "text",
+        text:
+          "⚠️ No PDF uploaded.",
+      };
+    }
+
+    const buffer =
+      fs.readFileSync(
+        file.path
+      );
+
+    const data =
+      await pdfParse(
+        buffer
+      );
+
+    const text =
+      data?.text?.trim();
+
+    if (!text) {
+
+      return {
+        type: "text",
+        text:
+          "⚠️ Empty PDF.",
+      };
+    }
+
+    return {
+      type: "text",
+      text,
+    };
+
+  } catch (err) {
+
+    console.error(
+      "PDF READ ERROR:",
+      err
+    );
+
+    return {
+      type: "text",
+      text:
+        "⚠️ Failed to read PDF.",
+    };
   }
 }

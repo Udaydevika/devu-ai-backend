@@ -101,6 +101,21 @@ app.use(express.urlencoded({
   limit: "50mb"
 }));
 app.use(rateLimiter);
+
+// ====================================
+// 🌍 UTF-8 SUPPORT
+// ====================================
+
+app.use((req, res, next) => {
+
+  res.setHeader(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
+  next();
+});
+
 app.set("trust proxy", 1);
 app.use((req, res, next) => {
 

@@ -154,6 +154,21 @@ const fileUrl =
     let text =
       data?.text?.trim() || "";
 
+      // ======================================
+// UTF-8 CLEANUP
+// ======================================
+
+text = Buffer.from(
+  text,
+  "utf8"
+).toString("utf8");
+
+// remove broken chars
+text = text.replace(
+  /�/g,
+  ""
+);
+
     // ======================================
     // SMART PROMPT MODES
     // ======================================
