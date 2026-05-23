@@ -465,14 +465,30 @@ try {
 }
 
 const stream =
-  ai.stream;
+  ai?.stream || ai;
 
-for await (
-  const token of stream
+if (
+  !stream ||
+  typeof stream[
+    Symbol.asyncIterator
+  ] !== "function"
 ) {
 
-        text += token;
-      }
+  text =
+    "Could not analyze frame.";
+
+} else {
+
+  for await (
+    const token of stream
+  ) {
+
+    text +=
+      typeof token === "string"
+        ? token
+        : token?.text || "";
+  }
+}
 
       const score =
         parseInt(
@@ -719,12 +735,27 @@ ${notes.join("\n").slice(0, 4000)}`,
   );
 }
 
-for await (
-  const token of summaryAI.stream
-){
+const summaryStream =
+  summaryAI?.stream ||
+  summaryAI;
 
-    summary += token;
+if (
+  summaryStream &&
+  typeof summaryStream[
+    Symbol.asyncIterator
+  ] === "function"
+) {
+
+  for await (
+    const token of summaryStream
+  ) {
+
+    summary +=
+      typeof token === "string"
+        ? token
+        : token?.text || "";
   }
+}
 
   return {
     type: "text",
