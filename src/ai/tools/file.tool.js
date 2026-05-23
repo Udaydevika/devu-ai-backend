@@ -3,7 +3,7 @@
 import fs from "fs";
 import mammoth from "mammoth";
 import Tesseract from "tesseract.js";
-import { fromPath } from "pdf2pic";
+import { pdf } from "pdf-to-img";
 
 
 async function extractPdfText(buffer) {
@@ -39,32 +39,21 @@ async function extractScannedPdfText(filePath) {
 
   try {
 
-    const convert =
-      fromPath(filePath, {
+    const document =
+      await pdf(filePath);
 
-        density: 150,
-
-        saveFilename: "temp",
-
-        savePath: "./uploads",
-
-        format: "png",
-
-        width: 1200,
-
-        height: 1600,
-      });
-
-    const page =
-      await convert(1);
+    const image =
+      await document.getPage(1);
 
     const result =
       await Tesseract.recognize(
-        page.path,
+        image,
         "eng"
       );
 
-    return result?.data?.text || "";
+    return (
+      result?.data?.text || ""
+    );
 
   } catch (err) {
 
