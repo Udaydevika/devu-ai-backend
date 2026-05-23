@@ -60,7 +60,7 @@ router.post(
   ensureUser,
   freeChatLimiter,
 
-  upload.single("file"),
+  upload.array("files"),
 
   ...chatStreamController
 );

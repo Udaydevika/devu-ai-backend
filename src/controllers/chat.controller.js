@@ -732,6 +732,13 @@ Make every reply useful, smart, and premium.
     // AI RESPONSE
     // =====================================
 
+    const {
+  stream,
+  usedModel,
+} = await getBestStream(
+  finalMessages
+);
+
     let fullResponse =
       "";
 

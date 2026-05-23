@@ -12,7 +12,8 @@ async function extractPdfText(buffer) {
       await import("pdf-parse");
 
     const pdfParse =
-      pdfParseModule.default;
+  pdfParseModule.default ||
+  pdfParseModule;
 
     const data =
       await pdfParse(buffer);

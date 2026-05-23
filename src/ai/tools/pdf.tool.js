@@ -200,7 +200,8 @@ export async function readPDF(
       );
 
     const pdfParse =
-      pdfParseModule.default;
+  pdfParseModule.default ||
+  pdfParseModule;
 
     // =========================
     // PARSE PDF
