@@ -50,82 +50,84 @@ function humanizeText(text = "") {
 }
 
 async function getBestStream(messages) {
-const providers = [
 
-  {
-    name: "groq",
-    run: async () =>
-      await streamGroq(messages),
-  },
+  const providers = [
 
-  {
-    name: "gpt4o-mini",
-    run: async () =>
-      await streamOpenRouter(
-        messages,
-        [],
-        "gpt-4o-mini"
-      ),
-  },
+    {
+      name: "groq",
+      run: async () =>
+        await streamGroq(messages),
+    },
 
-  {
-    name: "gemini",
-    run: async () =>
-      await streamGemini(messages),
-  },
+    {
+      name: "gpt4o-mini",
+      run: async () =>
+        await streamOpenRouter(
+          messages,
+          [],
+          "gpt-4o-mini"
+        ),
+    },
 
-  {
-    name: "huggingface",
-    run: async () =>
-      await streamHuggingFace(messages),
-  },
-];
+    {
+      name: "gemini",
+      run: async () =>
+        await streamGemini(messages),
+    },
+
+    {
+      name: "huggingface",
+      run: async () =>
+        await streamHuggingFace(messages),
+    },
+  ];
 
   for (const provider of providers) {
 
-try {
+    try {
 
-console.log(
-  `🧠 Trying ${provider.name}`
-);
+      console.log(
+        `🧠 Trying ${provider.name}`
+      );
 
-const stream =
-  await provider.run();
+      const result =
+        await provider.run();
 
-if (
+      const stream =
+        result?.stream || result;
 
-  stream &&
+      if (
 
-  typeof stream[
-    Symbol.asyncIterator
-  ] === "function"
+        stream &&
 
-) {
+        typeof stream[
+          Symbol.asyncIterator
+        ] === "function"
 
-  return {
+      ) {
 
-    stream,
+        return {
+          stream,
+          usedModel:
+            result?.usedModel ||
+            provider.name,
+        };
+      }
 
-    usedModel:
-      provider.name,
-  };
+    } catch (err) {
+
+      console.error(
+        `❌ ${provider.name} failed:`,
+        err.message
+      );
+    }
+  }
+
+  throw new Error(
+    "All AI providers failed"
+  );
 }
 
-} catch (err) {
-
-console.error(
-
-  `❌ ${provider.name} failed:`,
-
-  err.message
-);
-
-}
-}
-
-
-  throw new Error("All AI providers failed");
-}
 
 export async function chatController(req, res) {
   try {
@@ -357,7 +359,8 @@ if (
     file.mimetype
   );
 
-const stream = ai.stream;
+const stream =
+  ai?.stream || ai;
 
 let fullReply = "";
 

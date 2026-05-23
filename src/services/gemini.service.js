@@ -147,32 +147,85 @@ export async function streamGemini(
 
     console.log("✅ Gemini response received");
 
-  const parts =
-    data?.candidates?.[0]
-      ?.content?.parts || [];
+// ==========================================
+// 🔥 SAFE RESPONSE PARSER
+// ==========================================
 
-  let text = "";
+console.log(
+  "🔥 GEMINI RAW:",
+  JSON.stringify(data, null, 2)
+);
+
+const candidate =
+  data?.candidates?.[0];
+
+let text = "";
+
+// ==========================================
+// NORMAL PARTS
+// ==========================================
 
 if (
-  parts &&
-  Array.isArray(parts)
+  candidate?.content?.parts &&
+  Array.isArray(
+    candidate.content.parts
+  )
 ) {
 
-  text = parts
-    .map((p) => p.text || "")
-    .join("")
-    .trim();
+  text =
+    candidate.content.parts
+      .map((p) => {
+
+        if (
+          typeof p?.text ===
+          "string"
+        ) {
+
+          return p.text;
+        }
+
+        return "";
+      })
+      .join(" ")
+      .trim();
 }
+
+// ==========================================
+// FALLBACKS
+// ==========================================
 
 if (!text) {
 
   text =
-    data?.candidates?.[0]
-      ?.content?.parts?.[0]
+
+    candidate?.output_text ||
+
+    candidate?.content?.parts?.[0]
       ?.text ||
 
+    data?.text ||
+
+    "";
+}
+
+// ==========================================
+// FINAL EMPTY FIX
+// ==========================================
+
+if (
+  !text ||
+  text.trim().length === 0
+) {
+
+  text =
     "⚠️ Gemini returned empty response.";
 }
+
+console.log(
+  "✅ FINAL GEMINI TEXT:",
+  text
+);
+
   // ==========================================
   // 🔥 STREAM TOKENS
   // ==========================================

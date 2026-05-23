@@ -695,24 +695,25 @@ export const chatStreamController = [
   );
 }
 
-result =
 console.log(
   "🖼 IMAGE BUFFER:",
   !!file.buffer,
   file.buffer?.length
 );
 
+result =
   await handleVision(
     {
       buffer: file.buffer,
       mimetype:
         file.mimetype,
       originalname:
-  file.originalname ||
-  file.name,
+        file.originalname ||
+        file.name,
     },
     prompt
   );
+
             }
 
    // ==================================
@@ -1188,8 +1189,24 @@ Array.isArray(messages)
 : []
 );
 
+if (!aiResult) {
+
+  send(
+    res,
+    "text",
+    "⚠️ AI not responding."
+  );
+
+  return done(
+    res,
+    ping
+  );
+}
+
 const stream =
-aiResult?.stream;
+  aiResult?.stream ||
+  aiResult;
+
 
 const usedModel =
 aiResult?.usedModel ||
