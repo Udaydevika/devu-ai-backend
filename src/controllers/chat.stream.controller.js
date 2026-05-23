@@ -83,61 +83,49 @@ function send(res, type, content) {
 
   try {
 
+    const payload = {
+      type,
+    };
+
+    // =========================
+    // TEXT
+    // =========================
+
+    if (
+      typeof content === "string"
+    ) {
+
+      payload.content =
+        content;
+
+      payload.text =
+        content;
+    }
+
+    // =========================
+    // OBJECT
+    // =========================
+
+    else if (
+      typeof content === "object"
+    ) {
+
+      Object.assign(
+        payload,
+        content
+      );
+    }
+
     res.write(
-`data: ${JSON.stringify({
-    type,
-    content,
-  })}\n\n`
-);
+      `data: ${JSON.stringify(payload)}\n\n`
+    );
 
-// ✅ IMPORTANT
-res.flush?.();
-
+    res.flush?.();
 
   } catch (err) {
 
     console.error(
       "SEND ERROR:",
-      err.message
-    );
-  }
-}
-
-function sendDownload(
-  res,
-  name,
-  url,
-  fileType = "file"
-) {
-
-  if (
-    !url ||
-    res.writableEnded ||
-    res.destroyed
-  ) {
-    return;
-  }
-
-  try {
-
-    res.write(
-      `data: ${JSON.stringify({
-
-        type: "download",
-
-        content: {
-          name,
-          url,
-          fileType,
-        },
-
-      })}\n\n`
-    );
-
-  } catch (err) {
-
-    console.error(
-      "DOWNLOAD ERROR:",
       err.message
     );
   }
@@ -716,18 +704,14 @@ result =
 
             }
 
-   // ==================================
+  // ==================================
 // SEND IMAGE RESULT
 // ==================================
 
 if (
-
   result?.type === "image" ||
-
   result?.image ||
-
   result?.url
-
 ) {
 
   const imageUrl =
@@ -738,19 +722,14 @@ if (
 
     result;
 
-  res.write(
-  `data: ${JSON.stringify({
-
-    type: "image",
-
-    url: imageUrl,
-
-    text: "Image generated"
-
-  })}\n\n`
-);
-
-res.flush?.();
+  send(
+    res,
+    "image",
+    {
+      url: imageUrl,
+      text: "Image generated"
+    }
+  );
 
   sendDownload(
     res,
@@ -761,49 +740,45 @@ res.flush?.();
 
 } else {
 
-  send(
-    res,
+ send(
+  res,
+  "text",
 
-    result?.type || "text",
+  typeof result === "string"
 
-    typeof result === "string"
+    ? result
 
-      ? result
+    : result?.text ||
 
-      : result?.text ||
+      "⚠️ Empty AI response."
+);
 
-        "⚠️ Empty AI response."
-  );
+return done(
+  res,
+  ping
+);
 }
 
-            return done(
-              res,
-              ping
-            );
+} catch (err) {
 
-          } catch (err) {
+  console.error(
+    "IMAGE ERROR:",
+    err
+  );
 
-            console.error(
-              "IMAGE ERROR:",
-              err
-            );
+  send(
+    res,
+    "text",
+    "⚠️ Failed to analyze image."
+  );
 
-            send(
-              res,
-              "text",
-              "⚠️ Failed to read image."
-            );
-
-            return done(
-              res,
-              ping
-            );
+  return done(
+    res,
+    ping
+  );
+}
           }
-        }
-
-        
-
-        // ====================================
+//  ====================================
         // 🎧 AUDIO
         // ====================================
 
@@ -826,10 +801,18 @@ res.flush?.();
             ) {
 
               send(
-                res,
-                "audio",
-                out.transcript
-              );
+  res,
+  "audio",
+  {
+    text:
+      out?.transcript ||
+      out?.text ||
+      "Audio processed.",
+
+    audioUrl:
+      out?.url || ""
+  }
+);
 
             } else {
 
@@ -882,46 +865,18 @@ else if (
         prompt
       );
 
-    if (
-  out?.type === "video"
-) {
-
-  res.write(
-  `data: ${JSON.stringify({
-
-    type: "video",
-
-    url:
-      out?.url || "",
-
-    text:
-      out?.text ||
-      "Video processed"
-
-  })}\n\n`
-);
-
-res.flush?.();
-
-  if (out?.text) {
-
     send(
       res,
-      "text",
-      out.text
+      "video",
+      {
+        url:
+          out?.url || "",
+
+        text:
+          out?.text ||
+          "Video processed"
+      }
     );
-  }
-
-} else {
-
-  send(
-    res,
-    out?.type || "text",
-
-    out?.text ||
-    "⚠️ Video AI failed."
-  );
-}
 
     return done(
       res,

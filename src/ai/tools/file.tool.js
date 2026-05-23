@@ -43,13 +43,17 @@ async function extractScannedPdfText(filePath) {
       await pdf(filePath);
 
     const image =
-      await document.getPage(1);
+  await document.getPage(1);
+
+if (!image) {
+  return "";
+}
 
     const result =
       await Tesseract.recognize(
-        image,
-        "eng"
-      );
+  image.path || image,
+  "eng"
+);
 
     return (
       result?.data?.text || ""
