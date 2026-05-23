@@ -696,6 +696,12 @@ export const chatStreamController = [
 }
 
 result =
+console.log(
+  "🖼 IMAGE BUFFER:",
+  !!file.buffer,
+  file.buffer?.length
+);
+
   await handleVision(
     {
       buffer: file.buffer,
@@ -731,11 +737,19 @@ if (
 
     result;
 
-  send(
-    res,
-    "image",
-    imageUrl
-  );
+  res.write(
+  `data: ${JSON.stringify({
+
+    type: "image",
+
+    url: imageUrl,
+
+    text: "Image generated"
+
+  })}\n\n`
+);
+
+res.flush?.();
 
   sendDownload(
     res,
@@ -871,11 +885,22 @@ else if (
   out?.type === "video"
 ) {
 
-  send(
-    res,
-    "video",
-    out.url
-  );
+  res.write(
+  `data: ${JSON.stringify({
+
+    type: "video",
+
+    url:
+      out?.url || "",
+
+    text:
+      out?.text ||
+      "Video processed"
+
+  })}\n\n`
+);
+
+res.flush?.();
 
   if (out?.text) {
 

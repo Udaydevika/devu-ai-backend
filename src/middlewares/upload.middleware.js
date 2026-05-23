@@ -1,70 +1,16 @@
 // src/middlewares/upload.middleware.js
 
-import fs from "fs";
 import multer from "multer";
-import path from "path";
 
 // ==========================================
-// 📁 UPLOAD FOLDER
+// 🔥 MEMORY STORAGE
 // ==========================================
 
-const uploadDir = "uploads";
-
-if (!fs.existsSync(uploadDir)) {
-
-  fs.mkdirSync(
-    uploadDir,
-    { recursive: true }
-  );
-}
+const storage =
+  multer.memoryStorage();
 
 // ==========================================
-// 💾 STORAGE
-// ==========================================
-
-const storage = multer.diskStorage({
-
-  destination: (
-    req,
-    file,
-    cb
-  ) => {
-
-    cb(
-      null,
-      uploadDir
-    );
-  },
-
-  filename: (
-    req,
-    file,
-    cb
-  ) => {
-
-    const uniqueName =
-
-      Date.now() +
-
-      "-" +
-
-      Math.round(
-        Math.random() * 1e9
-      ) +
-
-      path.extname(
-        file.originalname
-      );
-
-    cb(
-      null,
-      uniqueName
-    );
-  },
-});
-
-// ==========================================
-// 📦 MULTER
+// 📦 MULTER CONFIG
 // ==========================================
 
 export const upload = multer({
@@ -89,7 +35,7 @@ export const upload = multer({
 
     try {
 
-      // ✅ MIME CHECK
+      // ✅ MIME VALIDATION
       if (
         !file.mimetype
       ) {
@@ -101,11 +47,8 @@ export const upload = multer({
         );
       }
 
-      // ✅ ACCEPT ALL SAFE FILES
-      cb(
-        null,
-        true
-      );
+      // ✅ ACCEPT FILE
+      cb(null, true);
 
     } catch (err) {
 

@@ -62,6 +62,6 @@ router.post(
 
   upload.array("files"),
 
-  ...chatStreamController
+  chatStreamController
 );
 export default router;

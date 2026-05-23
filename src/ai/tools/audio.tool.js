@@ -56,9 +56,30 @@ export async function handleAudio(
       `devu_${Date.now()}${ext}`
     );
 
-    const audioBuffer =
-  file.buffer ||
-  fs.readFileSync(file.path);
+    let audioBuffer = null;
+
+if (file.buffer) {
+
+  audioBuffer = file.buffer;
+
+} else if (
+  file.path &&
+  fs.existsSync(file.path)
+) {
+
+  audioBuffer =
+    fs.readFileSync(file.path);
+}
+
+if (
+  !audioBuffer ||
+  audioBuffer.length === 0
+) {
+
+  throw new Error(
+    "Invalid audio buffer"
+  );
+}
 
 fs.writeFileSync(
   tempPath,

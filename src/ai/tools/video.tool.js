@@ -184,13 +184,30 @@ export async function handleVideo(
     // READ BUFFER
     // ======================================
 
-    const videoBuffer =
+    let videoBuffer = null;
 
-      file.buffer ||
+if (file.buffer) {
 
-      fs.readFileSync(
-        file.path
-      );
+  videoBuffer = file.buffer;
+
+} else if (
+  file.path &&
+  fs.existsSync(file.path)
+) {
+
+  videoBuffer =
+    fs.readFileSync(file.path);
+}
+
+if (
+  !videoBuffer ||
+  videoBuffer.length === 0
+) {
+
+  throw new Error(
+    "Invalid video buffer"
+  );
+}
 
     if (
       !Buffer.isBuffer(

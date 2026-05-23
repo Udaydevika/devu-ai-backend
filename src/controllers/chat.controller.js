@@ -305,17 +305,30 @@ Explain:
     // IMAGE BUFFER
     // =====================================
 
-    const imageBuffer =
+    let imageBuffer = null;
 
-      file.buffer ||
+if (file.buffer) {
 
-      (
-        file.path
-          ? fs.readFileSync(
-              file.path
-            )
-          : null
-      );
+  imageBuffer = file.buffer;
+
+} else if (
+  file.path &&
+  fs.existsSync(file.path)
+) {
+
+  imageBuffer =
+    fs.readFileSync(file.path);
+}
+
+if (
+  !imageBuffer ||
+  imageBuffer.length === 0
+) {
+
+  throw new Error(
+    "Invalid image buffer"
+  );
+}
 
     if (!imageBuffer) {
 
@@ -588,8 +601,9 @@ if (
     usedModel:
       "video-tool",
   });
-}
-      }
+ }
+    }
+    
     // =========================
     // NEWS / SEARCH
     // =========================
