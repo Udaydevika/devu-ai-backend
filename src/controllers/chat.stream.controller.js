@@ -370,16 +370,35 @@ export const chatStreamController = [
       // DETECT TOOL
       // ======================================
 
-      const tool =
-  detectTool(
-    prompt || "",
-    files || []
-  ) || "groq_chat";
+     const tool =
+  detectTool({
+    message:
+      prompt || "",
+
+    files:
+      files || [],
+  }) || "groq_chat";
 
       console.log(
         "🧠 TOOL:",
         tool
       );
+
+      console.log(
+  "📂 FILES:",
+  files?.map((f) => ({
+    name:
+      f.originalname,
+
+    mime:
+      f.mimetype,
+  }))
+);
+
+console.log(
+  "🧠 TOOL:",
+  tool
+);
 
       // ======================================
       // FILE MODE
@@ -570,7 +589,24 @@ export const chatStreamController = [
           )
         ) {
 
-          try {
+         console.log(
+  "🖼 IMAGE FILE:",
+  {
+    name:
+      file.originalname,
+
+    mime:
+      file.mimetype,
+
+    size:
+      file.size,
+
+    hasBuffer:
+      !!file.buffer,
+  }
+);
+
+try {
 
             // ==================================
             // IMAGE GENERATION
@@ -784,6 +820,22 @@ return done(res, ping);
         ) {
 
           try {
+            console.log(
+  "🎧 AUDIO FILE:",
+  {
+    name:
+      file.originalname,
+
+    mime:
+      file.mimetype,
+
+    size:
+      file.size,
+
+    hasBuffer:
+      !!file.buffer,
+  }
+);
 
             const out =
               await handleAudio(
@@ -846,7 +898,7 @@ return done(res, ping);
           }
         }
 
-       // ====================================
+// ====================================
 // 🎬 VIDEO AI
 // ====================================
 
@@ -855,6 +907,23 @@ else if (
 ) {
 
   try {
+
+    console.log(
+  "🎬 VIDEO FILE:",
+  {
+    name:
+      file.originalname,
+
+    mime:
+      file.mimetype,
+
+    size:
+      file.size,
+
+    hasBuffer:
+      !!file.buffer,
+  }
+);
 
     const out =
       await handleVideo(
@@ -895,8 +964,7 @@ else if (
       ping
     );
   }
-}
-        
+} 
 
        // ====================================
        // 📄 DOCUMENTS / PDF / TXT / DOCX

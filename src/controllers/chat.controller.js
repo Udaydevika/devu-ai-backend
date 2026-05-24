@@ -138,7 +138,31 @@ export async function chatController(req, res) {
     const isTemporaryChat =
       req.isTemporaryChat === true;
 
-    const files = req.files || []; // ✅ IMPORTANT
+    const files = [
+
+  ...(req.files?.files || []),
+
+  ...(req.files?.image || []),
+
+  ...(req.files?.audio || []),
+
+  ...(req.files?.video || []),
+
+]; // ✅ IMPORTANT
+
+console.log(
+  "📂 NORMALIZED FILES:",
+  files.map((f) => ({
+    name:
+      f.originalname,
+
+    mime:
+      f.mimetype,
+
+    size:
+      f.size,
+  }))
+);
 
     console.log(
   "📦 STREAM FILES:",
@@ -199,7 +223,10 @@ export async function chatController(req, res) {
     // =========================
     // TOOL DETECTION
     // =========================
-    const tool = detectTool(lastText, files);
+    const tool = detectTool({
+  message: lastText,
+  files,
+});
 
     console.log("🧠 TOOL:", tool);
 
@@ -829,7 +856,8 @@ Make every reply useful, smart, and premium.
         user?.freeChatsLeft ??
         null,
     });
-  }
+    }
+
  } catch (err) {
 
     logError(
