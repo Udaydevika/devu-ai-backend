@@ -841,99 +841,79 @@ return done(res, ping);
     ping
   );
 }
-          }
-//  ====================================
-        // 🎧 AUDIO
-        // ====================================
+}
+// ====================================
+// 🎧 AUDIO
+// ====================================
 
-        else if (
-          mime.startsWith(
-            "audio/"
-          )
-        ) {
+else if (
+  mime.startsWith("audio/")
+) {
 
-          try {
-            console.log(
-  "🎧 AUDIO FILE:",
-  {
-    name:
-      file.originalname,
+  try {
 
-    mime:
-      file.mimetype,
+    console.log(
+      "🎧 AUDIO FILE:",
+      {
+        name: file.originalname,
+        mime: file.mimetype,
+        size: file.size,
+        hasBuffer: !!file.buffer,
+      }
+    );
 
-    size:
-      file.size,
+    const out =
+      await handleAudio(
+        file,
+        prompt
+      );
 
-    hasBuffer:
-      !!file.buffer,
+    // =========================
+    // SUCCESS
+    // =========================
+
+    send(
+      res,
+      "audio",
+      {
+        text:
+          out?.transcript ||
+          out?.text ||
+          out?.content ||
+          "🎧 Audio processed.",
+
+        audioUrl:
+          out?.url || "",
+
+        transcript:
+          out?.transcript || ""
+      }
+    );
+
+    return done(
+      res,
+      ping
+    );
+
+  } catch (err) {
+
+    console.error(
+      "AUDIO ERROR:",
+      err
+    );
+
+    send(
+      res,
+      "text",
+      "⚠️ Failed to process audio."
+    );
+
+    return done(
+      res,
+      ping
+    );
   }
-);
-
-            const out =
-              await handleAudio(
-                file,
-                prompt
-              );
-
-            send(
-  res,
-  "audio",
-  {
-    text:
-
-      out?.transcript ||
-
-      out?.text ||
-
-      out?.content ||
-
-      "🎧 Audio processed.",
-
-    audioUrl:
-      out?.url || "",
-
-    transcript:
-      out?.transcript || ""
-  }
-);
-
-return done(res, ping);
-
-            } else {
-
-              send(
-                res,
-                "text",
-                out?.text ||
-                "⚠️ Audio processing failed."
-              );
-            }
-
-            return done(
-              res,
-              ping
-            );
-
-          } catch (err) {
-
-            console.error(
-              "AUDIO ERROR:",
-              err
-            );
-
-            send(
-              res,
-              "text",
-              "⚠️ Failed to process audio."
-            );
-
-            return done(
-              res,
-              ping
-            );
-          }
-        }
+}
 
 // ====================================
 // 🎬 VIDEO AI
