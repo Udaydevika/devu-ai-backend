@@ -180,13 +180,6 @@ const uploadsPath = path.join(
   }
 });
 
-// Serve public files
-app.use(
-  "/generated",
-  express.static("public/generated")
-);
-
-
 // Serve generated AI files
 app.use(
   "/generated",

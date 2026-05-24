@@ -31,7 +31,11 @@ export async function streamGemini(
   // ==========================================
   // 🧠 NORMAL CHAT MODE
   // ==========================================
-  if (!imageBuffer || imageBuffer.length === 0) {
+  if (
+  !imageBuffer ||
+  !Buffer.isBuffer(imageBuffer) ||
+  imageBuffer.length === 0
+) {
     contents = messages.map((m) => {
       let text = "";
 
@@ -120,12 +124,23 @@ export async function streamGemini(
   // ==========================================
   // 🚀 GEMINI REQUEST
   // ==========================================
-  const res = await fetch(url, {
+  const controller =
+  new AbortController();
+
+const timeout =
+  setTimeout(
+    () =>
+      controller.abort(),
+    45000
+  );
+
+const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type":
         "application/json",
     },
+    signal: controller.signal,
     body: JSON.stringify({
       contents,
       generationConfig: {
@@ -144,6 +159,8 @@ export async function streamGemini(
 
   const data =
     await res.json();
+
+    clearTimeout(timeout);
 
     console.log("✅ Gemini response received");
 
@@ -254,8 +271,10 @@ console.log(
   }
 
   return {
-stream: streamTokens(),
-usedModel: "gemini-2.5-flash",
+  stream: streamTokens(),
+  text,
+  usedModel:
+    "gemini-2.5-flash",
 };
 
 }

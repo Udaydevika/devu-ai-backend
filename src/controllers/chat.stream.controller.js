@@ -743,20 +743,13 @@ if (
  send(
   res,
   "text",
-
   typeof result === "string"
-
     ? result
-
     : result?.text ||
-
       "⚠️ Empty AI response."
 );
 
-return done(
-  res,
-  ping
-);
+return done(res, ping);
 }
 
 } catch (err) {
@@ -813,6 +806,8 @@ return done(
       out?.url || ""
   }
 );
+
+return done(res, ping);
 
             } else {
 
@@ -878,10 +873,7 @@ else if (
       }
     );
 
-    return done(
-      res,
-      ping
-    );
+    return done(res, ping);
 
   } catch (err) {
 

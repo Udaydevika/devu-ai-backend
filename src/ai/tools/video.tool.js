@@ -668,7 +668,7 @@ try {
 
     return {
       type: "video",
-      url,
+      url: videoUrl,
       text:
         "🎬 Video uploaded successfully.",
     };
