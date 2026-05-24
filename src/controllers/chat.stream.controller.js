@@ -116,9 +116,14 @@ function send(res, type, content) {
       );
     }
 
-    res.write(
-      `data: ${JSON.stringify(payload)}\n\n`
-    );
+    const safePayload =
+  JSON.stringify(payload);
+
+if (!safePayload) return;
+
+res.write(
+  `data: ${safePayload}\n\n`
+);
 
     res.flush?.();
 
@@ -773,11 +778,26 @@ if (
 
     result;
 
-  send(res, "image", {
+ send(res, "image", {
   type: "image",
+
   url: imageUrl,
-  content: imageUrl,
-  text: result?.text || "Image processed"
+
+  content:
+
+    result?.text ||
+
+    result?.content ||
+
+    imageUrl,
+
+  text:
+
+    result?.text ||
+
+    result?.content ||
+
+    "🖼 Image processed."
 });
 
   sendDownload(
@@ -856,21 +876,25 @@ return done(res, ping);
                 prompt
               );
 
-            if (
-              out?.transcript
-            ) {
-
-              send(
+            send(
   res,
   "audio",
   {
     text:
+
       out?.transcript ||
+
       out?.text ||
-      "Audio processed.",
+
+      out?.content ||
+
+      "🎧 Audio processed.",
 
     audioUrl:
-      out?.url || ""
+      out?.url || "",
+
+    transcript:
+      out?.transcript || ""
   }
 );
 
@@ -945,17 +969,29 @@ else if (
       );
 
     send(
-      res,
-      "video",
-      {
-        url:
-          out?.url || "",
+  res,
+  "video",
+  {
+    url:
+      out?.url || "",
 
-        text:
-          out?.text ||
-          "Video processed"
-      }
-    );
+    text:
+
+      out?.text ||
+
+      out?.content ||
+
+      "🎬 Video processed.",
+
+    content:
+
+      out?.text ||
+
+      out?.content ||
+
+      "🎬 Video processed."
+  }
+);
 
     return done(res, ping);
 
