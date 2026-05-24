@@ -9,59 +9,67 @@ import { freeChatLimiter } from "../middlewares/freeChatLimiter.js";
 
 const router = express.Router();
 
+// ==========================================
+// 🔥 MULTI MEDIA UPLOAD
+// ==========================================
 
+const multiUpload = upload.fields([
+{ name: "files", maxCount: 10 },
+{ name: "image", maxCount: 10 },
+{ name: "audio", maxCount: 10 },
+{ name: "video", maxCount: 10 },
+]);
 
 /**
- * =========================
- * NORMAL CHAT (JSON)
- * ✅ counts free chats
- * =========================
- */
-router.post(
+
+* =========================
+* NORMAL CHAT
+* =========================
+  */
+  router.post(
   "/chat",
   ensureUser,
   freeChatLimiter,
 
-   upload.array("files"),
-   
-  chatController
+multiUpload,
+
+chatController
 );
 
 /**
- * =========================
- * TEMPORARY CHAT (JSON)
- * ❌ no memory
- * ❌ no DB save
- * ❌ no free chat decrement
- * =========================
- */
-router.post(
+
+* =========================
+* TEMP CHAT
+* =========================
+  */
+  router.post(
   "/chat/temp",
   ensureUser,
-  (req, res, next) => {
-    req.isTemporaryChat = true;
-    next();
-  },
 
-  upload.array("files"),
+(req, res, next) => {
+req.isTemporaryChat = true;
+next();
+},
 
-  chatController
+multiUpload,
+
+chatController
 );
 
 /**
- * =========================
- * STREAM CHAT (SSE + FILES)
- * ✅ image upload ready
- * ✅ counts free chats once
- * =========================
- */
-router.post(
+
+* =========================
+* STREAM CHAT
+* =========================
+  */
+  router.post(
   "/chat/stream",
   ensureUser,
   freeChatLimiter,
 
-  upload.array("files"),
+multiUpload,
 
-  chatStreamController
+chatStreamController
 );
+
 export default router;

@@ -653,27 +653,28 @@ try {
     );
 
   if (
-    !frames ||
-    frames.length === 0
-  ) {
+  !frames ||
+  frames.length === 0
+) {
 
-    const fileName =
-      `video_${Date.now()}${ext}`;
+  const fileName =
+    `video_${Date.now()}${ext}`;
 
-    const url =
-      saveBuffer(
-        videoBuffer,
-        fileName
-      );
+  const videoUrl =
+    saveBuffer(
+      videoBuffer,
+      fileName
+    );
 
-    return {
-      type: "video",
-      url: videoUrl,
-      text:
-        "🎬 Video uploaded successfully.",
-    };
-  }
+  return {
+    type: "video",
 
+    url: videoUrl,
+
+    text:
+      "🎬 Video uploaded successfully.",
+  };
+}
   const notes = [];
 
   for (

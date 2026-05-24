@@ -216,13 +216,23 @@ text = text.replace(
     }
 
     // ======================================
-    // FINAL STRUCTURED RESPONSE
-    // ======================================
-    return {
-      type: "audio",
-      url: fileUrl,
-      transcript: text,
-    };
+// FINAL STRUCTURED RESPONSE
+// ======================================
+
+return {
+
+  type: "audio",
+
+  url: fileUrl,
+
+  transcript:
+    text ||
+    "Audio processed.",
+
+  text:
+    text ||
+    "Audio processed.",
+};
 
   } catch (err) {
     console.error(
@@ -231,9 +241,11 @@ text = text.replace(
     );
 
     return {
-      type: "text",
-      text: "⚠️ Audio processing failed.",
-    };
+  type: "audio",
+  text: "⚠️ Audio processing failed.",
+  transcript: "",
+  url: null,
+};
 
   } finally {
     // ======================================

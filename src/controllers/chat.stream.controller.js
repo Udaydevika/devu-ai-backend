@@ -738,6 +738,8 @@ if (
     "image"
   );
 
+  return done(res, ping);
+
 } else {
 
  send(
