@@ -773,14 +773,12 @@ if (
 
     result;
 
-  send(
-    res,
-    "image",
-    {
-      url: imageUrl,
-      text: "Image generated"
-    }
-  );
+  send(res, "image", {
+  type: "image",
+  url: imageUrl,
+  content: imageUrl,
+  text: result?.text || "Image processed"
+});
 
   sendDownload(
     res,

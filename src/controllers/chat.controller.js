@@ -366,6 +366,10 @@ if (
           "⚠️ Image buffer missing.",
       });
     }
+console.log(
+  "🖼 IMAGE RECEIVED:",
+  file.originalname
+);
 
     // =====================================
     // GEMINI VISION
@@ -442,6 +446,44 @@ for await (
     if (files.length > 0) {
       const file = files[0];
 
+      // =====================================
+// 🎬 VIDEO HANDLER
+// =====================================
+
+if (
+  file.mimetype?.startsWith(
+    "video/"
+  )
+) {
+
+  console.log(
+    "🎬 VIDEO DETECTED:",
+    file.originalname
+  );
+
+  const result =
+    await handleVideo(
+      file,
+      lastText
+    );
+
+  return res.json({
+
+    type: "video",
+
+    url:
+      result?.url || "",
+
+    text:
+      result?.text ||
+      "Video processed.",
+
+    usedModel:
+      "video-tool",
+  });
+}
+
+
       if (!file) {
 
   return res.status(400).json({
@@ -450,46 +492,6 @@ text: "⚠️ No file uploaded.",
 });
 }
 
-      // 🎧 AUDIO
-if (
-
-  file.mimetype?.startsWith("audio/") ||
-
-  file.mimetype?.includes("mpeg") ||
-
-  file.mimetype?.includes("mp3") ||
-
-  file.originalname
-    ?.toLowerCase()
-    .endsWith(".mp3") ||
-
-  file.originalname
-    ?.toLowerCase()
-    .endsWith(".m4a")
-
-) {
-
-  const result =
-    await handleAudio(
-      file,
-      lastText
-    );
-
-  return res.json({
-  type:
-    result?.type || "audio",
-
-  audioUrl:
-    result?.url || null,
-
-  text:
-    result?.transcript ||
-    result?.text ||
-    "Audio processed.",
-
-  usedModel: "audio-tool",
-});
-}
       // Skip image because already handled above
       if (!file.mimetype?.startsWith("image/")) {
 
@@ -555,80 +557,6 @@ const extractedText =
             usedModel: "file-tool",
           });
         }
-
-      
-// 🎬 VIDEO
-if (
-
-  file.mimetype?.startsWith("video/") ||
-
-  file.mimetype?.includes("mp4") ||
-
-  file.originalname
-    ?.toLowerCase()
-    .endsWith(".mp4")
-
-) {
-
-  console.log(
-    "🎬 VIDEO DETECTED:",
-    file.originalname
-  );
-
-  const result =
-    await handleVideo(
-      file,
-      lastText
-    );
-
-  console.log(
-    "🎬 VIDEO RESULT:",
-    result
-  );
-
-  // ✅ STRING RESPONSE
-  if (
-    typeof result === "string"
-  ) {
-
-    if (
-      result.startsWith("http")
-    ) {
-
-      return res.json({
-        type: "video",
-        url: result,
-        text: "Video ready",
-        usedModel:
-          "video-tool",
-      });
-    }
-
-    return res.json({
-      type: "text",
-      text: result,
-      usedModel:
-        "video-tool",
-    });
-  }
-
-  // ✅ OBJECT RESPONSE
-  return res.json({
-
-    type:
-      result?.type || "text",
-
-    url:
-      result?.url || null,
-
-    text:
-      result?.text ||
-      "Video processed",
-
-    usedModel:
-      "video-tool",
-  });
- }
     }
     
     // =========================

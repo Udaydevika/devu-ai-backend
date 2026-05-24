@@ -111,7 +111,9 @@ export async function streamGemini(
             inline_data: {
               mime_type:
                 mimeType,
-              data: imageBuffer.toString(
+             data: Buffer
+  .from(imageBuffer)
+  .toString("base64"), data: imageBuffer.toString(
                 "base64"
               ),
             },

@@ -430,7 +430,11 @@ return "vision";
     return "search";
   }
 
-  if (
+ // ==========================================
+// 🧠 SMART ANALYSIS
+// ==========================================
+
+if (
   hasAny(text, [
     "explain",
     "why",
@@ -443,11 +447,51 @@ return "vision";
   return "coding";
 }
 
-  // ==========================================
-  // ⚡ DEFAULT
-  // ==========================================
+// ==========================================
+// 🔥 FILE FALLBACK FIX
+// ==========================================
 
-  return "groq_chat";
+if (hasFiles) {
+
+  const file =
+    Array.isArray(files)
+      ? files[0] || {}
+      : {};
+
+  const mime = String(
+
+    file.mimeType ||
+
+    file.mimetype ||
+
+    ""
+
+  ).toLowerCase();
+
+  // ==========================
+  // SAFE FALLBACKS
+  // ==========================
+
+  if (mime.startsWith("image/")) {
+    return "vision";
+  }
+
+  if (mime.startsWith("audio/")) {
+    return "audio";
+  }
+
+  if (mime.startsWith("video/")) {
+    return "video";
+  }
+
+  return "file";
+}
+
+// ==========================================
+// ⚡ DEFAULT
+// ==========================================
+
+return "groq_chat";
 }
 
 // ==========================================
