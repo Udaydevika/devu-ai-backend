@@ -108,10 +108,17 @@ app.use(rateLimiter);
 
 app.use((req, res, next) => {
 
-  res.setHeader(
-    "Content-Type",
-    "application/json; charset=utf-8"
-  );
+  if (
+    !req.url.includes(
+      "/chat/stream"
+    )
+  ) {
+
+    res.setHeader(
+      "Content-Type",
+      "application/json; charset=utf-8"
+    );
+  }
 
   next();
 });

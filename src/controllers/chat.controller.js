@@ -138,17 +138,13 @@ export async function chatController(req, res) {
     const isTemporaryChat =
       req.isTemporaryChat === true;
 
-    const files = [
+    const files =
 
-  ...(req.files?.files || []),
+  Array.isArray(req.files)
 
-  ...(req.files?.image || []),
+    ? req.files
 
-  ...(req.files?.audio || []),
-
-  ...(req.files?.video || []),
-
-]; // ✅ IMPORTANT
+    : [];
 
 console.log(
   "📂 NORMALIZED FILES:",
@@ -223,10 +219,11 @@ console.log(
     // =========================
     // TOOL DETECTION
     // =========================
-    const tool = detectTool({
-  message: lastText,
-  files,
-});
+    const tool =
+  detectTool(
+    lastText,
+    files
+  );
 
     console.log("🧠 TOOL:", tool);
 

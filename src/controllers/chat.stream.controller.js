@@ -131,6 +131,24 @@ function send(res, type, content) {
   }
 }
 
+function sendDownload(
+  res,
+  name,
+  url,
+  kind = "file"
+) {
+
+  send(
+    res,
+    "download",
+    {
+      name,
+      url,
+      kind,
+    }
+  );
+}
+
 function startSSE(res) {
 
   // ======================================
@@ -371,13 +389,10 @@ export const chatStreamController = [
       // ======================================
 
      const tool =
-  detectTool({
-    message:
-      prompt || "",
-
-    files:
-      files || [],
-  }) || "groq_chat";
+  detectTool(
+    prompt || "",
+    files || []
+  ) || "groq_chat";
 
       console.log(
         "🧠 TOOL:",

@@ -35,25 +35,37 @@ async function extractPdfText(buffer) {
   }
 }
 
-async function extractScannedPdfText(filePath) {
+async function extractScannedPdfText(
+  buffer
+) {
 
   try {
 
+    const tempPath =
+      `/tmp/${Date.now()}.pdf`;
+
+    fs.writeFileSync(
+      tempPath,
+      buffer
+    );
+
     const document =
-      await pdf(filePath);
+      await pdf(tempPath);
 
     const image =
-  await document.getPage(1);
+      await document.getPage(1);
 
-if (!image) {
-  return "";
-}
+    if (!image) {
+      return "";
+    }
 
     const result =
       await Tesseract.recognize(
-  image.path || image,
-  "eng"
-);
+        image.path || image,
+        "eng"
+      );
+
+    fs.unlinkSync(tempPath);
 
     return (
       result?.data?.text || ""
@@ -153,7 +165,7 @@ export async function handleFile(file) {
 
   text =
     await extractScannedPdfText(
-      file.path
+      buffer
     );
 
   console.log(
