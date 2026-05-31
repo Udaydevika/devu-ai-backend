@@ -372,7 +372,11 @@ async function generateHF(
     res.data
   );
 
-  return `${process.env.PUBLIC_URL || ""}/generated/${fileName}`;
+  const base =
+  process.env.PUBLIC_URL ||
+  "https://devu-ai.onrender.com";
+
+return `${base}/generated/${fileName}`;
 }
 
 // ==========================================
@@ -416,7 +420,11 @@ async function saveImage(
     imgRes.data
   );
 
-  return `${process.env.PUBLIC_URL || ""}/generated/${fileName}`;
+  const base =
+  process.env.PUBLIC_URL ||
+  "https://devu-ai.onrender.com";
+
+return `${base}/generated/${fileName}`;
 }
 
 // ==========================================
