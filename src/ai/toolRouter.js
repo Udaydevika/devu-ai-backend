@@ -430,7 +430,51 @@ return "vision";
     return "search";
   }
 
- // ==========================================
+// ==========================================
+// 🔥 FILE PRIORITY FIX
+// ==========================================
+
+if (hasFiles) {
+
+  const file =
+    Array.isArray(files)
+      ? files[0] || {}
+      : {};
+
+  const mime = String(
+    file.mimeType ||
+    file.mimetype ||
+    ""
+  ).toLowerCase();
+
+  console.log(
+    "🧠 ROUTER MIME:",
+    mime
+  );
+
+  if (mime.startsWith("image/")) {
+    return "vision";
+  }
+
+  if (mime.startsWith("audio/")) {
+    return "audio";
+  }
+
+  if (mime.startsWith("video/")) {
+    return "video";
+  }
+
+  if (
+    mime.includes("pdf") ||
+    mime.includes("document") ||
+    mime.includes("word") ||
+    mime.includes("text")
+  ) {
+    return "file";
+  }
+}
+
+// ==========================================
 // 🧠 SMART ANALYSIS
 // ==========================================
 

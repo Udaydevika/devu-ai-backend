@@ -193,7 +193,7 @@ function startSSE(res) {
 );
     }
 
-  }, 15000);
+  }, 5000);
 }
 
 function getLastText(messages = []) {
@@ -370,6 +370,19 @@ export const chatStreamController = [
 
       const file =
         files[0];
+
+        console.log(
+  "📦 RECEIVED FILE:",
+  file
+    ? {
+        name: file.originalname || file.name,
+        mime: file.mimetype || file.mimeType,
+        size: file.size,
+        hasBuffer: !!file.buffer,
+        hasPath: !!file.path,
+      }
+    : "NO FILE"
+);
 
         if (
   file &&

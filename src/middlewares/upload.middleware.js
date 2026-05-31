@@ -24,7 +24,7 @@ export const upload = multer({
       30* 1024 * 1024,
 
     // ✅ MAX FILES
-    files: 10,
+    files: 20,
   },
 
   fileFilter: (
