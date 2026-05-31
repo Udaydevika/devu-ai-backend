@@ -119,17 +119,15 @@ export async function streamGemini(
   }
 
   // ==========================================
-  // 🚀 GEMINI REQUEST
-  // ==========================================
-  const controller =
-  new AbortController();
+// 🚀 GEMINI REQUEST
+// ==========================================
 
-const timeout =
-  setTimeout(
-    () =>
-      controller.abort(),
-    45000
-  );
+const controller = new AbortController();
+
+const timeout = setTimeout(
+  () => controller.abort(),
+  45000
+);
 
 try {
 
@@ -149,67 +147,103 @@ try {
     }),
   });
 
+  const rawText = await res.text();
+
   if (!res.ok) {
-    throw new Error(await res.text());
-  }
 
-  const data = await res.json();
-
-console.log(
-  "🔥 GEMINI RAW:",
-  JSON.stringify(data, null, 2)
-);
-
-const candidate =
-  data?.candidates?.[0];
-
-let text = "";
-
-if (
-  candidate?.content?.parts &&
-  Array.isArray(candidate.content.parts)
-) {
-  text = candidate.content.parts
-    .map((p) => p?.text || "")
-    .join(" ")
-    .trim();
-}
-
-if (!text) {
-  text =
-    candidate?.output_text ||
-    data?.text ||
-    "";
-}
-
-if (!text) {
-  text =
-    "⚠️ Gemini returned empty response.";
-}
-
-async function* streamTokens() {
-  const chunks =
-    text.match(/.{1,35}/g) || [];
-
-  for (const chunk of chunks) {
-    yield chunk;
-
-    await new Promise(
-      (r) => setTimeout(r, 12)
+    console.error(
+      "❌ GEMINI API ERROR:",
+      rawText
     );
-  }
-}
 
-return {
-  stream: streamTokens(),
-  text,
-  usedModel: "gemini-2.5-flash",
-};
+    return {
+      stream: (async function* () {
+        yield "⚠️ AI service temporarily unavailable.";
+      })(),
+      text:
+        "⚠️ AI service temporarily unavailable.",
+      usedModel:
+        "gemini-fallback",
+    };
+  }
+
+  const data = JSON.parse(rawText);
+
+  console.log(
+    "🔥 GEMINI RAW:",
+    JSON.stringify(data, null, 2)
+  );
+
+  const candidate =
+    data?.candidates?.[0];
+
+  let text = "";
+
+  if (
+    candidate?.content?.parts &&
+    Array.isArray(
+      candidate.content.parts
+    )
+  ) {
+    text = candidate.content.parts
+      .map((p) => p?.text || "")
+      .join(" ")
+      .trim();
+  }
+
+  if (!text) {
+    text =
+      candidate?.output_text ||
+      data?.text ||
+      "";
+  }
+
+  if (!text) {
+    text =
+      "⚠️ Gemini returned empty response.";
+  }
+
+  async function* streamTokens() {
+
+    const chunks =
+      text.match(/.{1,35}/g) || [];
+
+    for (const chunk of chunks) {
+
+      yield chunk;
+
+      await new Promise(
+        (r) => setTimeout(r, 12)
+      );
+    }
+  }
+
+  return {
+    stream: streamTokens(),
+    text,
+    usedModel: "gemini-2.5-flash",
+  };
+
+} catch (err) {
+
+  console.error(
+    "❌ GEMINI CRASH:",
+    err.message
+  );
+
+  return {
+    stream: (async function* () {
+      yield "⚠️ AI service unavailable.";
+    })(),
+    text:
+      "⚠️ AI service unavailable.",
+    usedModel:
+      "gemini-fallback",
+  };
 
 } finally {
 
   clearTimeout(timeout);
 
 }
-
 }
