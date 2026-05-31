@@ -43,42 +43,7 @@ export function detectTool(
     return "web";
   }
 
-  // ==========================================
-  // 💻 CODING DETECTION
-  // ==========================================
-
-  if (
-    hasAny(text, [
-      "flutter",
-      "react",
-      "nextjs",
-      "node",
-      "express",
-      "mongodb",
-      "firebase",
-      "api",
-      "backend",
-      "frontend",
-      "debug",
-      "fix error",
-      "dart",
-      "javascript",
-      "typescript",
-      "python",
-      "java",
-      "cpp",
-      "c++",
-      "compile",
-      "gradle",
-      "build apk",
-      "android studio",
-      "vs code",
-      "code",
-    ])
-  ) {
-
-    return "coding";
-  }
+  
 
   // ==========================================
   // 📂 FILE MODE
@@ -431,50 +396,6 @@ return "vision";
   }
 
 // ==========================================
-// 🔥 FILE PRIORITY FIX
-// ==========================================
-
-if (hasFiles) {
-
-  const file =
-    Array.isArray(files)
-      ? files[0] || {}
-      : {};
-
-  const mime = String(
-    file.mimeType ||
-    file.mimetype ||
-    ""
-  ).toLowerCase();
-
-  console.log(
-    "🧠 ROUTER MIME:",
-    mime
-  );
-
-  if (mime.startsWith("image/")) {
-    return "vision";
-  }
-
-  if (mime.startsWith("audio/")) {
-    return "audio";
-  }
-
-  if (mime.startsWith("video/")) {
-    return "video";
-  }
-
-  if (
-    mime.includes("pdf") ||
-    mime.includes("document") ||
-    mime.includes("word") ||
-    mime.includes("text")
-  ) {
-    return "file";
-  }
-}
-
-// ==========================================
 // 🧠 SMART ANALYSIS
 // ==========================================
 
@@ -487,49 +408,45 @@ if (
     "analyze",
   ])
 ) {
-
-  return "coding";
+  return "groq_chat";
 }
 
 // ==========================================
-// 🔥 FILE FALLBACK FIX
-// ==========================================
+  // 💻 CODING DETECTION
+  // ==========================================
 
-if (hasFiles) {
+  if (
+    hasAny(text, [
+      "flutter",
+      "react",
+      "nextjs",
+      "node",
+      "express",
+      "mongodb",
+      "firebase",
+      "api",
+      "backend",
+      "frontend",
+      "debug",
+      "fix error",
+      "dart",
+      "javascript",
+      "typescript",
+      "python",
+      "java",
+      "cpp",
+      "c++",
+      "compile",
+      "gradle",
+      "build apk",
+      "android studio",
+      "vs code",
+      "code",
+    ])
+  ) {
 
-  const file =
-    Array.isArray(files)
-      ? files[0] || {}
-      : {};
-
-  const mime = String(
-
-    file.mimeType ||
-
-    file.mimetype ||
-
-    ""
-
-  ).toLowerCase();
-
-  // ==========================
-  // SAFE FALLBACKS
-  // ==========================
-
-  if (mime.startsWith("image/")) {
-    return "vision";
+    return "coding";
   }
-
-  if (mime.startsWith("audio/")) {
-    return "audio";
-  }
-
-  if (mime.startsWith("video/")) {
-    return "video";
-  }
-
-  return "file";
-}
 
 // ==========================================
 // ⚡ DEFAULT

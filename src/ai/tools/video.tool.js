@@ -199,6 +199,16 @@ if (file.buffer) {
     fs.readFileSync(file.path);
 }
 
+console.log(
+  "🎬 VIDEO SIZE:",
+  videoBuffer?.length
+);
+
+console.log(
+  "🎬 VIDEO NAME:",
+  file.originalname
+);
+
 if (
   !videoBuffer ||
   videoBuffer.length === 0
@@ -438,7 +448,7 @@ try {
 
     for (
       let i = 0;
-      i < Math.min(4, frames.length);
+      i < Math.min(8, frames.length);
       i++
     ) {
 
@@ -449,7 +459,6 @@ try {
 
       const ai =
   await withTimeout(
-
     streamGemini(
             [
               {
@@ -679,7 +688,7 @@ try {
 
   for (
     let i = 0;
-    i < Math.min(4, frames.length);
+    i < Math.min(8, frames.length);
     i++
   ) {
 
@@ -697,7 +706,7 @@ try {
               role: "user",
 
               content:
-                "Describe this frame briefly.",
+                "Describe everything visible in this frame. Include people, objects, actions, text, emotions and scene.",
             },
           ],
 
@@ -789,17 +798,25 @@ if (
   }
 }
 
-  return {
-    type: "text",
+  const fileName =
+  `video_${Date.now()}${ext}`;
 
-    text:
+const videoUrl =
+  saveBuffer(
+    videoBuffer,
+    fileName
+  );
+
+return {
+  type: "video",
+  url: videoUrl,
+  text:
 summary
-  ? `🎬 Video Analysis Complete
+? `🎬 Video Analysis Complete
 
 ${summary}`
-
-  : "🎬 Video analyzed.",
-  };
+: "🎬 Video analyzed."
+};
 
 } finally {
 

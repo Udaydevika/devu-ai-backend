@@ -109,14 +109,9 @@ export async function streamGemini(
           },
           {
             inline_data: {
-              mime_type:
-                mimeType,
-             data: Buffer
-  .from(imageBuffer)
-  .toString("base64"), data: imageBuffer.toString(
-                "base64"
-              ),
-            },
+  mime_type: mimeType,
+  data: imageBuffer.toString("base64"),
+},
           },
         ],
       },
@@ -136,39 +131,29 @@ const timeout =
     45000
   );
 
-const res = await fetch(url, {
+try {
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Content-Type":
-        "application/json",
+      "Content-Type": "application/json",
     },
     signal: controller.signal,
     body: JSON.stringify({
       contents,
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         topP: 0.95,
       },
     }),
   });
 
   if (!res.ok) {
-    throw new Error(
-      await res.text()
-    );
+    throw new Error(await res.text());
   }
 
-  const data =
-    await res.json();
-
-    clearTimeout(timeout);
-
-    console.log("✅ Gemini response received");
-
-// ==========================================
-// 🔥 SAFE RESPONSE PARSER
-// ==========================================
+  const data = await res.json();
 
 console.log(
   "🔥 GEMINI RAW:",
@@ -180,103 +165,51 @@ const candidate =
 
 let text = "";
 
-// ==========================================
-// NORMAL PARTS
-// ==========================================
-
 if (
   candidate?.content?.parts &&
-  Array.isArray(
-    candidate.content.parts
-  )
+  Array.isArray(candidate.content.parts)
 ) {
-
-  text =
-    candidate.content.parts
-      .map((p) => {
-
-        if (
-          typeof p?.text ===
-          "string"
-        ) {
-
-          return p.text;
-        }
-
-        return "";
-      })
-      .join(" ")
-      .trim();
+  text = candidate.content.parts
+    .map((p) => p?.text || "")
+    .join(" ")
+    .trim();
 }
 
-// ==========================================
-// FALLBACKS
-// ==========================================
-
 if (!text) {
-
   text =
-
     candidate?.output_text ||
-
-    candidate?.content?.parts?.[0]
-      ?.text ||
-
     data?.text ||
-
     "";
 }
 
-// ==========================================
-// FINAL EMPTY FIX
-// ==========================================
-
-if (
-  !text ||
-  text.trim().length === 0
-) {
-
+if (!text) {
   text =
     "⚠️ Gemini returned empty response.";
 }
 
-console.log(
-  "✅ FINAL GEMINI TEXT:",
-  text
-);
+async function* streamTokens() {
+  const chunks =
+    text.match(/.{1,35}/g) || [];
 
-  // ==========================================
-  // 🔥 STREAM TOKENS
-  // ==========================================
-  async function* streamTokens() {
-    if (!text) {
-      yield "⚠️ Gemini returned empty response.";
-      return;
-    }
+  for (const chunk of chunks) {
+    yield chunk;
 
-    const chunks =
-      text.match(
-        /.{1,35}/g
-      ) || [];
-
-    for (const chunk of chunks) {
-      yield chunk;
-
-      await new Promise(
-        (r) =>
-          setTimeout(
-            r,
-            12
-          )
-      );
-    }
+    await new Promise(
+      (r) => setTimeout(r, 12)
+    );
   }
+}
 
-  return {
+return {
   stream: streamTokens(),
   text,
-  usedModel:
-    "gemini-2.5-flash",
+  usedModel: "gemini-2.5-flash",
 };
+
+} finally {
+
+  clearTimeout(timeout);
+
+}
 
 }

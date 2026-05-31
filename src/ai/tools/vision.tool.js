@@ -68,6 +68,16 @@ const imageBuffer =
   file.buffer ||
   fs.readFileSync(file.path);
 
+console.log(
+  "🖼 IMAGE SIZE:",
+  imageBuffer.length
+);
+
+console.log(
+  "🖼 MIME TYPE:",
+  file.mimetype
+);
+
 const ai =
   await streamGemini(
     messages,
@@ -75,6 +85,11 @@ const ai =
     file.mimetype ||
     "image/jpeg"
   );
+
+console.log(
+  "✅ GEMINI VISION RESULT:",
+  ai
+);
 
 // =====================================
 // VALIDATE STREAM
@@ -130,13 +145,18 @@ output =
     }
 
     // =====================================
-    // SUCCESS
-    // =====================================
+// SUCCESS
+// =====================================
 
-    return {
-      type: "text",
-      text: output,
-    };
+console.log(
+  "✅ VISION OUTPUT:",
+  output.substring(0, 200)
+);
+
+return {
+  type: "text",
+  text: output,
+};
 
   } catch (err) {
 

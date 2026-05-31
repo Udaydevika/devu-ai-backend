@@ -81,6 +81,16 @@ if (
   );
 }
 
+console.log(
+  "🎧 AUDIO SIZE:",
+  audioBuffer.length
+);
+
+console.log(
+  "🎧 AUDIO FILE:",
+  name
+);
+
 fs.writeFileSync(
   tempPath,
   audioBuffer
@@ -151,6 +161,10 @@ const fileUrl =
       "whisper-large-v3"
     );
 
+    console.log(
+  "🚀 STARTING WHISPER"
+);
+
     const res = await fetch(
       "https://api.groq.com/openai/v1/audio/transcriptions",
       {
@@ -174,6 +188,11 @@ const fileUrl =
 
     let text =
       data?.text?.trim() || "";
+
+      console.log(
+  "📝 TRANSCRIPT:",
+  text.substring(0, 200)
+);
 
       // ======================================
 // UTF-8 CLEANUP
@@ -219,16 +238,17 @@ text = text.replace(
 // FINAL STRUCTURED RESPONSE
 // ======================================
 
+console.log(
+  "✅ AUDIO SUCCESS:",
+  fileUrl
+);
+
 return {
-
   type: "audio",
-
   url: fileUrl,
-
   transcript:
     text ||
     "Audio processed.",
-
   text:
     text ||
     "Audio processed.",

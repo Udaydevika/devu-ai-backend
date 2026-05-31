@@ -758,12 +758,13 @@ console.log(
   file.buffer?.length
 );
 
+console.log("🚀 STARTING VISION");
+
 result =
   await handleVision(
     {
       buffer: file.buffer,
-      mimetype:
-        file.mimetype,
+      mimetype: file.mimetype,
       originalname:
         file.originalname ||
         file.name,
@@ -771,6 +772,7 @@ result =
     prompt
   );
 
+console.log("✅ VISION RESULT:", result);
             }
 
   // ==================================
@@ -860,7 +862,10 @@ return done(res, ping);
 // ====================================
 
 else if (
-  mime.startsWith("audio/")
+  mime.startsWith("audio/") ||
+  mime.includes("mpeg") ||
+  mime.includes("m4a") ||
+  mime.includes("wav")
 ) {
 
   try {
@@ -875,12 +880,15 @@ else if (
       }
     );
 
-    const out =
-      await handleAudio(
-        file,
-        prompt
-      );
+    console.log("🚀 STARTING AUDIO");
 
+const out =
+  await handleAudio(
+    file,
+    prompt
+  );
+
+console.log("✅ AUDIO RESULT:", out);
     // =========================
     // SUCCESS
     // =========================
@@ -928,12 +936,15 @@ else if (
   }
 }
 
+
 // ====================================
 // 🎬 VIDEO AI
 // ====================================
 
 else if (
-  mime.startsWith("video/")
+  mime.startsWith("video/") ||
+  mime.includes("mp4") ||
+  mime.includes("quicktime")
 ) {
 
   try {
@@ -955,11 +966,15 @@ else if (
   }
 );
 
-    const out =
-      await handleVideo(
-        file,
-        prompt
-      );
+    console.log("🚀 STARTING VIDEO");
+
+const out =
+  await handleVideo(
+    file,
+    prompt
+  );
+
+console.log("✅ VIDEO RESULT:", out);
 
     send(
   res,
