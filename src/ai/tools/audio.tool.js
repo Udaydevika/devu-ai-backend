@@ -96,6 +96,14 @@ fs.writeFileSync(
   audioBuffer
 );
 
+console.log(
+  "🎧 AUDIO RECEIVED:",
+  {
+    name,
+    size: audioBuffer.length,
+  }
+);
+
     // ======================================
     // SAVE PUBLIC AUDIO
     // ======================================

@@ -138,25 +138,22 @@ export async function chatController(req, res) {
     const isTemporaryChat =
       req.isTemporaryChat === true;
 
-    const files =
-
-  Array.isArray(req.files)
-
+    const files = req.files
+  ? Array.isArray(req.files)
     ? req.files
+    : Object.values(req.files).flat()
+  : req.file
+  ? [req.file]
+  : [];
 
-    : [];
+console.log("REQ.FILES:", req.files);
 
 console.log(
-  "📂 NORMALIZED FILES:",
+  "NORMALIZED FILES:",
   files.map((f) => ({
-    name:
-      f.originalname,
-
-    mime:
-      f.mimetype,
-
-    size:
-      f.size,
+    name: f.originalname,
+    mime: f.mimetype,
+    size: f.size,
   }))
 );
 

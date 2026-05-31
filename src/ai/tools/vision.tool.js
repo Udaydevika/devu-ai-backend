@@ -69,13 +69,14 @@ const imageBuffer =
   fs.readFileSync(file.path);
 
 console.log(
-  "🖼 IMAGE SIZE:",
-  imageBuffer.length
+  "🖼 VISION START:",
+  file.originalname,
+  file.mimetype
 );
 
 console.log(
-  "🖼 MIME TYPE:",
-  file.mimetype
+  "🖼 BUFFER SIZE:",
+  imageBuffer?.length
 );
 
 const ai =

@@ -219,6 +219,14 @@ if (
   );
 }
 
+console.log(
+  "🎬 VIDEO RECEIVED:",
+  {
+    name: file.originalname,
+    size: videoBuffer.length,
+  }
+);
+
     if (
       !Buffer.isBuffer(
         videoBuffer
