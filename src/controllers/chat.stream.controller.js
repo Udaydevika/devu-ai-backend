@@ -775,6 +775,24 @@ result =
 console.log("✅ VISION RESULT:", result);
             }
 
+           if (
+  result?.text?.includes(
+    "AI service"
+  )
+) {
+
+  send(
+    res,
+    "text",
+    "🔄 Gemini busy. Retrying..."
+  );
+
+  return done(
+    res,
+    ping
+  );
+} 
+
   // ==================================
 // SEND IMAGE RESULT
 // ==================================

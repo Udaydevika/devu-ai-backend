@@ -68,11 +68,15 @@ case "ocr": {
     // GPT4o FALLBACK
     // ====================================
 
-    return await streamOpenRouter(
-      messages,
-      [],
-      "openai/gpt-4o"
-    );
+    console.log(
+  "🔄 FALLBACK TO GPT4o"
+);
+
+return await streamOpenRouter(
+  messages,
+  [],
+  "openai/gpt-4o-mini"
+);
   }
 }
 

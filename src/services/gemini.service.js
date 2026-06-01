@@ -131,42 +131,52 @@ const timeout = setTimeout(
 
 try {
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    signal: controller.signal,
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 8192,
-        topP: 0.95,
+  let res;
+
+  for (let i = 0; i < 3; i++) {
+
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          topP: 0.95,
+        },
+      }),
+    });
 
-  const rawText = await res.text();
+    if (res.ok) {
+      break;
+    }
 
-  if (!res.ok) {
-
-    console.error(
-      "❌ GEMINI API ERROR:",
-      rawText
+    console.log(
+      `🔄 Gemini Retry ${i + 1}/3`
     );
 
-    return {
-      stream: (async function* () {
-        yield "⚠️ AI service temporarily unavailable.";
-      })(),
-      text:
-        "⚠️ AI service temporarily unavailable.",
-      usedModel:
-        "gemini-fallback",
-    };
+    await new Promise(
+      (r) => setTimeout(r, 3000)
+    );
   }
 
+  const rawText = await res.text();
+  
+ if (!res.ok) {
+
+  console.error(
+    "❌ GEMINI API ERROR:",
+    rawText
+  );
+
+  throw new Error(
+    "Gemini API failed"
+  );
+}
   const data = JSON.parse(rawText);
 
   console.log(

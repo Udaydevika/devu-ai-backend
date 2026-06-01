@@ -1,7 +1,6 @@
 import fs from "fs";
-import { streamGemini }
-from "../../services/gemini.service.js";
-
+import { getAIStream }
+from "../../services/aiRouter.service.js";
 /**
  * ==========================================
  * 👁️ DEVU AI VISION TOOL
@@ -54,83 +53,97 @@ export async function handleVision(
       },
     ];
 
-   // =====================================
-// GEMINI VISION
-// =====================================
+    // =====================================
+    // GEMINI VISION
+    // =====================================
 
-console.log(
-  "🖼️ Vision file:",
-  file?.originalname,
-  file?.mimetype
-);
+    console.log(
+      "🖼️ Vision file:",
+      file?.originalname,
+      file?.mimetype
+    );
 
-const imageBuffer =
-  file.buffer ||
-  fs.readFileSync(file.path);
+    const imageBuffer =
+      file.buffer ||
+      fs.readFileSync(file.path);
 
-console.log(
-  "🖼 VISION START:",
-  file.originalname,
-  file.mimetype
-);
+    console.log(
+      "🖼 VISION START:",
+      file.originalname,
+      file.mimetype
+    );
 
-console.log(
-  "🖼 BUFFER SIZE:",
-  imageBuffer?.length
-);
+    console.log(
+      "🖼 BUFFER SIZE:",
+      imageBuffer?.length
+    );
 
-const ai =
-  await streamGemini(
-    messages,
-    imageBuffer,
-    file.mimetype ||
-    "image/jpeg"
-  );
+    const ai =
+      await getAIStream(
+        "vision",
+        messages,
+        {
+          imageBuffer,
+          mimeType:
+            file.mimetype ||
+            "image/jpeg",
+        }
+      );
 
-console.log(
-  "✅ GEMINI VISION RESULT:",
-  ai
-);
+    console.log(
+      "✅ GEMINI VISION RESULT:",
+      ai
+    );
 
-// =====================================
-// VALIDATE STREAM
-// =====================================
+    if (
+      ai?.usedModel ===
+      "gemini-fallback"
+    ) {
 
-if (
-  !ai ||
-  !ai.stream ||
-  typeof ai.stream[
-    Symbol.asyncIterator
-  ] !== "function"
-) {
+      throw new Error(
+        "Gemini unavailable"
+      );
+    }
 
-  return {
-    type: "text",
-    text:
-      "⚠️ Gemini vision unavailable.",
-  };
-}
+    // =====================================
+    // VALIDATE STREAM
+    // =====================================
 
-const stream =
-  ai.stream;
+    if (
+      !ai ||
+      !ai.stream ||
+      typeof ai.stream[
+        Symbol.asyncIterator
+      ] !== "function"
+    ) {
 
-let output = "";
+      return {
+        type: "text",
+        text:
+          "⚠️ Gemini vision unavailable.",
+      };
+    }
 
-// =====================================
-// STREAM TOKENS
-// =====================================
+    const stream =
+      ai.stream;
 
-for await (
-  const token of stream
-) {
+    let output = "";
 
-  if (token) {
-    output += String(token);
-  }
-}
+    // =====================================
+    // STREAM TOKENS
+    // =====================================
 
-output =
-  output.trim();
+    for await (
+      const token of stream
+    ) {
+
+      if (token) {
+        output += String(token);
+      }
+    }
+
+    output =
+      output.trim();
 
     // =====================================
     // EMPTY RESPONSE
@@ -146,18 +159,18 @@ output =
     }
 
     // =====================================
-// SUCCESS
-// =====================================
+    // SUCCESS
+    // =====================================
 
-console.log(
-  "✅ VISION OUTPUT:",
-  output.substring(0, 200)
-);
+    console.log(
+      "✅ VISION OUTPUT:",
+      output.substring(0, 200)
+    );
 
-return {
-  type: "text",
-  text: output,
-};
+    return {
+      type: "text",
+      text: output,
+    };
 
   } catch (err) {
 
