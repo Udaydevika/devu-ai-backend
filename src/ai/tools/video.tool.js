@@ -105,9 +105,23 @@ function saveBuffer(
     buffer
   );
 
+  console.log(
+    "✅ VIDEO SAVED:",
+    fullPath
+  );
+
+  console.log(
+    "✅ EXISTS:",
+    fs.existsSync(fullPath)
+  );
+
+  console.log(
+    "📂 PUBLIC DIR:",
+    PUBLIC_DIR
+  );
+
   return `${BASE_URL}/${cleanName}`;
 }
-
 // ==========================================
 // ⏱️ TIMEOUT PROTECTION
 // ==========================================

@@ -127,9 +127,25 @@ console.log(
       fileName
     );
 
-    fs.writeFileSync(
+    
+fs.writeFileSync(
   finalPath,
   audioBuffer
+);
+
+console.log(
+  "✅ AUDIO SAVED:",
+  finalPath
+);
+
+console.log(
+  "✅ EXISTS:",
+  fs.existsSync(finalPath)
+);
+
+console.log(
+  "📂 GENERATED DIR:",
+  dir
 );
 
 

@@ -168,6 +168,16 @@ const generatedPath = path.join(
   "generated"
 );
 
+console.log(
+  "📂 GENERATED PATH:",
+  generatedPath
+);
+
+console.log(
+  "📂 EXISTS:",
+  fs.existsSync(generatedPath)
+);
+
 const uploadsPath = path.join(
   process.cwd(),
   "uploads"
@@ -297,5 +307,26 @@ app.listen(PORT, () => {
 ${process.env.PUBLIC_URL || "local"}
 
 ✅ Server Ready
+
+
 `);
+if (fs.existsSync(generatedPath)) {
+
+  console.log(
+    "📂 GENERATED PATH:",
+    generatedPath
+  );
+
+  console.log(
+    "📂 GENERATED FILES:",
+    fs.readdirSync(generatedPath)
+  );
+
+} else {
+
+  console.log(
+    "❌ GENERATED FOLDER NOT FOUND:",
+    generatedPath
+  );
+}
 });
