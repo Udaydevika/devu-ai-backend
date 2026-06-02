@@ -470,7 +470,7 @@ try {
 
     for (
       let i = 0;
-      i < Math.min(8, frames.length);
+      i < Math.min(3, frames.length);
       i++
     ) {
 
@@ -710,7 +710,7 @@ try {
 
   for (
     let i = 0;
-    i < Math.min(8, frames.length);
+    i < Math.min(3, frames.length);
     i++
   ) {
 

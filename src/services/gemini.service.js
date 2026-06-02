@@ -241,15 +241,7 @@ try {
     err.message
   );
 
-  return {
-    stream: (async function* () {
-      yield "⚠️ AI service unavailable.";
-    })(),
-    text:
-      "⚠️ AI service unavailable.",
-    usedModel:
-      "gemini-fallback",
-  };
+  throw err;
 
 } finally {
 

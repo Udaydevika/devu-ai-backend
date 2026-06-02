@@ -775,21 +775,20 @@ result =
 console.log("✅ VISION RESULT:", result);
             }
 
-           if (
+      if (
   result?.text?.includes(
     "AI service"
   )
 ) {
 
+  console.log(
+    "⚠️ Gemini busy"
+  );
+
   send(
     res,
     "text",
-    "🔄 Gemini busy. Retrying..."
-  );
-
-  return done(
-    res,
-    ping
+    "⚠️ Gemini busy. Please retry."
   );
 } 
 
@@ -842,19 +841,19 @@ if (
 
   return done(res, ping);
 
-} else {
+} 
 
- send(
+send(
   res,
-  "text",
-  typeof result === "string"
-    ? result
-    : result?.text ||
-      "⚠️ Empty AI response."
+  "vision",
+  {
+    text:
+      result?.text ||
+      String(result)
+  }
 );
 
-return done(res, ping);
-}
+return done(res,ping);
 
 } catch (err) {
 

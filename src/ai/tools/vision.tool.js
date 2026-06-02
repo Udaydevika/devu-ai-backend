@@ -95,16 +95,6 @@ export async function handleVision(
       ai
     );
 
-    if (
-      ai?.usedModel ===
-      "gemini-fallback"
-    ) {
-
-      throw new Error(
-        "Gemini unavailable"
-      );
-    }
-
     // =====================================
     // VALIDATE STREAM
     // =====================================
