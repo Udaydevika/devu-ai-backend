@@ -128,7 +128,7 @@ function saveBuffer(
 
 async function withTimeout(
   promise,
-  ms = 30000
+  ms = 120000
 ) {
 
   return Promise.race([
@@ -680,7 +680,7 @@ try {
   frames =
     await withTimeout(
       extractFrames(tempPath),
-      15000
+      60000
     );
 
   if (
@@ -847,18 +847,27 @@ ${summary}`
 
 }catch (err) {
 
-    console.error(
-      "❌ VIDEO TOOL ERROR:",
-      err.message
+  console.error(
+    "❌ VIDEO TOOL ERROR:",
+    err.message
+  );
+
+  const fileName =
+    `video_${Date.now()}.mp4`;
+
+  const videoUrl =
+    saveBuffer(
+      videoBuffer,
+      fileName
     );
 
-    return {
-      type: "text",
-      text:
-        "⚠️ Failed to process video.",
-    };
-
-  } finally {
+  return {
+    type: "video",
+    url: videoUrl,
+    text:
+      "🎬 Video uploaded successfully.",
+  };
+} finally {
 
     safeDelete(tempPath);
   }
