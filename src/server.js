@@ -168,6 +168,12 @@ const generatedPath = path.join(
   "generated"
 );
 
+if (!fs.existsSync(generatedPath)) {
+  fs.mkdirSync(generatedPath, {
+    recursive: true,
+  });
+}
+
 console.log(
   "📂 GENERATED PATH:",
   generatedPath
