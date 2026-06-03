@@ -162,6 +162,12 @@ case "image_variation": {
   };
 }
 
+case "audio":
+
+  return await streamGroq(
+    messages
+  );
+
   // =====================================
   // 🌐 SEARCH → GPT-4o
   // =====================================
