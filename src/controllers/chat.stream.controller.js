@@ -812,24 +812,8 @@ if (
 
  send(res, "image", {
   type: "image",
-
-  url: imageUrl,
-
-  content:
-
-    result?.text ||
-
-    result?.content ||
-
-    imageUrl,
-
-  text:
-
-    result?.text ||
-
-    result?.content ||
-
-    "🖼 Image processed."
+  mediaUrl: imageUrl,
+  text: result?.text || ""
 });
 
   sendDownload(
@@ -845,12 +829,8 @@ if (
 
 send(
   res,
-  "vision",
-  {
-    text:
-      result?.text ||
-      String(result)
-  }
+  "text",
+  result?.text || ""
 );
 
 return done(res,ping);
@@ -911,22 +891,16 @@ console.log("✅ AUDIO RESULT:", out);
     // =========================
 
     send(
-      res,
-      "audio",
-      {
-        text:
-          out?.transcript ||
-          out?.text ||
-          out?.content ||
-          "🎧 Audio processed.",
-
-        audioUrl:
-          out?.url || "",
-
-        transcript:
-          out?.transcript || ""
-      }
-    );
+    send(
+  res,
+  "audio",
+  {
+    text: out?.transcript || out?.text,
+    mediaUrl: out?.url || "",
+    transcript: out?.transcript || ""
+  }
+)
+);
 
     return done(
       res,
@@ -993,28 +967,12 @@ const out =
 
 console.log("✅ VIDEO RESULT:", out);
 
-    send(
+  send(
   res,
   "video",
   {
-    url:
-      out?.url || "",
-
-    text:
-
-      out?.text ||
-
-      out?.content ||
-
-      "🎬 Video processed.",
-
-    content:
-
-      out?.text ||
-
-      out?.content ||
-
-      "🎬 Video processed."
+    mediaUrl: out?.url || "",
+    text: out?.text || "🎬 Video processed."
   }
 );
 
