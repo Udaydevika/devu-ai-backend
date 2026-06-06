@@ -891,7 +891,6 @@ console.log("✅ AUDIO RESULT:", out);
     // =========================
 
     send(
-    send(
   res,
   "audio",
   {
@@ -899,7 +898,6 @@ console.log("✅ AUDIO RESULT:", out);
     mediaUrl: out?.url || "",
     transcript: out?.transcript || ""
   }
-)
 );
 
     return done(
@@ -970,10 +968,14 @@ console.log("✅ VIDEO RESULT:", out);
   send(
   res,
   "video",
+
+  console.log(
+  "🎬 SSE VIDEO:",
   {
     mediaUrl: out?.url || "",
     text: out?.text || "🎬 Video processed."
   }
+)
 );
 
     return done(res, ping);

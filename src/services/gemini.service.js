@@ -179,13 +179,13 @@ try {
 }
   const data = JSON.parse(rawText);
 
-  console.log(
-    "🔥 GEMINI RAW:",
-    JSON.stringify(data, null, 2)
-  );
+const first =
+  Array.isArray(data)
+    ? data[0]
+    : data;
 
-  const candidate =
-    data?.candidates?.[0];
+const candidate =
+  first?.candidates?.[0];
 
   let text = "";
 
