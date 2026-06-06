@@ -23,7 +23,7 @@ export async function streamGemini(
   }
 
   const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=" +
     apiKey;
 
   let contents = [];
@@ -126,7 +126,7 @@ const controller = new AbortController();
 
 const timeout = setTimeout(
   () => controller.abort(),
-  45000
+  120000
 );
 
 try {
@@ -145,7 +145,7 @@ try {
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
           topP: 0.95,
         },
       }),

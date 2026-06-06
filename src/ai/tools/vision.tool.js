@@ -79,16 +79,23 @@ export async function handleVision(
     );
 
     const ai =
-      await getAIStream(
-        "vision",
-        messages,
-        {
-          imageBuffer,
-          mimeType:
-            file.mimetype ||
-            "image/jpeg",
-        }
-      );
+  await getAIStream(
+    "vision",
+    messages,
+    {
+      imageBuffer,
+      mimeType:
+        file.mimetype ||
+        "image/jpeg",
+    }
+  );
+
+if (ai?.text) {
+  return {
+    type: "text",
+    text: ai.text,
+  };
+}
 
     console.log(
       "✅ GEMINI VISION RESULT:",
@@ -99,38 +106,31 @@ export async function handleVision(
     // VALIDATE STREAM
     // =====================================
 
-    if (
-      !ai ||
-      !ai.stream ||
-      typeof ai.stream[
-        Symbol.asyncIterator
-      ] !== "function"
-    ) {
+   if (!ai) {
+  return {
+    type: "text",
+    text: "⚠️ Gemini returned empty response."
+  };
+}
 
-      return {
-        type: "text",
-        text:
-          "⚠️ Gemini vision unavailable.",
-      };
-    }
+if (ai.text) {
+  return {
+    type: "text",
+    text: ai.text
+  };
+}
 
-    const stream =
-      ai.stream;
-
-    let output = "";
-
-    // =====================================
-    // STREAM TOKENS
-    // =====================================
-
-    for await (
-      const token of stream
-    ) {
-
-      if (token) {
-        output += String(token);
-      }
-    }
+if (
+  !ai.stream ||
+  typeof ai.stream[
+    Symbol.asyncIterator
+  ] !== "function"
+) {
+  return {
+    type: "text",
+    text: "⚠️ Invalid Gemini response."
+  };
+}
 
     output =
       output.trim();

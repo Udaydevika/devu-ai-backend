@@ -40,9 +40,12 @@ const PUBLIC_DIR = path.join(
 );
 
 const BASE_URL =
-process.env.PUBLIC_URL
-  ? `${process.env.PUBLIC_URL}/generated`
-  : "http://localhost:3000/generated";
+process.env.PUBLIC_URL?.replace(/\/$/, "")
+|| "https://devu-ai.onrender.com";
+
+function makePublicUrl(fileName) {
+  return `${BASE_URL}/generated/${fileName}`;
+}
 
 // ==========================================
 // 📂 ENSURE DIRECTORY
@@ -120,7 +123,7 @@ function saveBuffer(
     PUBLIC_DIR
   );
 
-  return `${BASE_URL}/${cleanName}`;
+  return makePublicUrl(cleanName);
 }
 // ==========================================
 // ⏱️ TIMEOUT PROTECTION
@@ -372,7 +375,7 @@ try {
     type: "video",
 
     url:
-`${BASE_URL}/${fileName}`,
+      makePublicUrl(fileName),
 
     text:
       "🎬 Viral reel created.",
