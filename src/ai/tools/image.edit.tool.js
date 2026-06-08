@@ -1,5 +1,5 @@
 // src/ai/tools/image.edit.tool.js
-
+import fs from "fs";
 import axios from "axios";
 import { generateImage } from "./image.tool.js";
 
@@ -34,7 +34,12 @@ export async function editImage(file, userPrompt = "") {
     // =============================
     // STEP 1 — Convert image to base64
     // =============================
-    const base64 = file.buffer.toString("base64");
+    const imageBuffer =
+file.buffer ||
+fs.readFileSync(file.path);
+
+const base64 =
+imageBuffer.toString("base64");
 
     // =============================
     // STEP 2 — Vision Prompt

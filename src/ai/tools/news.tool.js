@@ -9,7 +9,7 @@ export async function getLiveNews(query) {
       )}&apiKey=${process.env.NEWS_API_KEY}`
     );
 
-    const articles = res.data.articles.slice(0, 5);
+    const articles = res.data?.articles?.slice(0,5) || [];
 
     return articles
       .map((a, i) => `📰 ${i + 1}. ${a.title}`)

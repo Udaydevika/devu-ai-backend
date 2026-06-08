@@ -147,7 +147,7 @@ memorySchema.statics.cleanupOldMemories = async function (userId) {
     },
     {
       $set: {
-      isDeleted: false, // 🔥 ADD THIS
+      isDeleted: true, // 🔥 ADD THIS
     }
   }
   );

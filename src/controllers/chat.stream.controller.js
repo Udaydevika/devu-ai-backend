@@ -968,14 +968,10 @@ console.log("✅ VIDEO RESULT:", out);
   send(
   res,
   "video",
-
-  console.log(
-  "🎬 SSE VIDEO:",
   {
     mediaUrl: out?.url || "",
     text: out?.text || "🎬 Video processed."
   }
-)
 );
 
     return done(res, ping);

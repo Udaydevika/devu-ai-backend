@@ -132,8 +132,16 @@ if (
   };
 }
 
-    output =
-      output.trim();
+    let output = "";
+
+for await (const token of ai.stream) {
+  output +=
+    typeof token === "string"
+      ? token
+      : token?.text || "";
+}
+
+output = output.trim();
 
     // =====================================
     // EMPTY RESPONSE

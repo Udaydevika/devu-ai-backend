@@ -153,7 +153,7 @@ const base =
 
   process.env.PUBLIC_URL ||
 
-  "http://localhost:3000";
+  "https://devu-ai.onrender.com";
 
 const fileUrl =
   `${base}/generated/${fileName}`;
