@@ -59,10 +59,12 @@ case "ocr": {
 
   } catch (err) {
 
-    console.error(
-      "GEMINI VISION FAILED:",
-      err?.message || err
-    );
+  console.error(
+    "❌ GEMINI VISION FAILED:",
+    err?.message || err
+  );
+
+  throw err;
 
     // ====================================
     // GPT4o FALLBACK

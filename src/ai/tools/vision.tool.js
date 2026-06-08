@@ -78,83 +78,38 @@ export async function handleVision(
       imageBuffer?.length
     );
 
-    const ai =
-  await getAIStream(
-    "vision",
-    messages,
-    {
-      imageBuffer,
-      mimeType:
-        file.mimetype ||
-        "image/jpeg",
-    }
-  );
+    const ai = await getAIStream(
+  "vision",
+  messages,
+  {
+    imageBuffer,
+    mimeType:
+      file.mimetype || "image/jpeg",
+  }
+);
 
-if (ai?.text) {
+if (!ai) {
   return {
     type: "text",
-    text: ai.text,
+    text: "⚠️ Vision failed."
   };
 }
 
-    console.log(
-      "✅ GEMINI VISION RESULT:",
-      ai
-    );
+let output = ai.text || "";
 
-    // =====================================
-    // VALIDATE STREAM
-    // =====================================
-
-   if (!ai) {
-  return {
-    type: "text",
-    text: "⚠️ Gemini returned empty response."
-  };
-}
-
-if (ai.text) {
-  return {
-    type: "text",
-    text: ai.text
-  };
-}
-
-if (
-  !ai.stream ||
-  typeof ai.stream[
-    Symbol.asyncIterator
-  ] !== "function"
-) {
-  return {
-    type: "text",
-    text: "⚠️ Invalid Gemini response."
-  };
-}
-
-    let output = "";
-
-for await (const token of ai.stream) {
-  output +=
-    typeof token === "string"
-      ? token
-      : token?.text || "";
+if (!output && ai.stream) {
+  for await (const token of ai.stream) {
+    output += String(token || "");
+  }
 }
 
 output = output.trim();
 
-    // =====================================
-    // EMPTY RESPONSE
-    // =====================================
-
-    if (!output) {
-
-      return {
-        type: "text",
-        text:
-          "⚠️ No image understanding generated.",
-      };
-    }
+return {
+  type: "text",
+  text: output ||
+        "⚠️ No image understanding generated."
+};
 
     // =====================================
     // SUCCESS

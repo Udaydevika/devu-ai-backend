@@ -894,9 +894,11 @@ console.log("✅ AUDIO RESULT:", out);
   res,
   "audio",
   {
-    text: out?.transcript || out?.text,
     mediaUrl: out?.url || "",
-    transcript: out?.transcript || ""
+    audioUrl: out?.url || "",
+    url: out?.url || "",
+    transcript: out?.transcript || "",
+    text: out?.text || out?.transcript || ""
   }
 );
 
@@ -970,10 +972,11 @@ console.log("✅ VIDEO RESULT:", out);
   "video",
   {
     mediaUrl: out?.url || "",
+    videoUrl: out?.url || "",
+    url: out?.url || "",
     text: out?.text || "🎬 Video processed."
   }
 );
-
     return done(res, ping);
 
   } catch (err) {
