@@ -1268,8 +1268,9 @@ aiResult?.usedModel ||
 "unknown";
 
 
-      let hasResponse =
-        false;
+      let hasResponse = false;
+
+let chunk = "";
 
       if (!stream) {
 
@@ -1426,6 +1427,16 @@ chunk
 chunk = "";
 
 }
+}
+
+if (chunk.length > 0) {
+
+send(
+res,
+"text",
+chunk
+);
+
 }
 
 } catch (streamErr) {
