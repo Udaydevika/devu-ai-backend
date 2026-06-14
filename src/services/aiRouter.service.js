@@ -64,24 +64,17 @@ case "ocr": {
     err?.message || err
   );
 
-  throw err;
+  console.log(
+    "🔄 FALLBACK TO GPT4o"
+  );
 
-    // ====================================
-    // GPT4o FALLBACK
-    // ====================================
-
-    console.log(
-  "🔄 FALLBACK TO GPT4o"
-);
-
-return await streamOpenRouter(
-  messages,
-  [],
-  "openai/gpt-4o-mini"
-);
+  return await streamOpenRouter(
+    messages,
+    [],
+    "openai/gpt-4o-mini"
+  );
   }
 }
-
   // =====================================
   // 🎨 IMAGE AI → HF
   // =====================================

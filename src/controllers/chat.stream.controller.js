@@ -239,12 +239,8 @@ export const chatStreamController = [
     // =====================================
 
     req.on("close", () => {
-
-      console.log(
-        "🔌 Client disconnected"
-      );
-
-      clearInterval(ping);
+  console.log("🔌 Client disconnected");
+  clearInterval(ping);
 
       try {
 
@@ -253,7 +249,6 @@ export const chatStreamController = [
           !res.destroyed
         ) {
 
-          res.end();
         }
 
       } catch (err) {
@@ -1239,6 +1234,16 @@ Array.isArray(messages)
 : []
 );
 
+console.log(
+"🔥 AI RESULT:",
+aiResult
+);
+
+console.log(
+"🔥 USED MODEL:",
+aiResult?.usedModel
+);
+
 if (!aiResult) {
 
   send(
@@ -1265,8 +1270,6 @@ aiResult?.usedModel ||
 
       let hasResponse =
         false;
-
-      let chunk = "";
 
       if (!stream) {
 
@@ -1337,17 +1340,69 @@ try {
 for await (const tokenRaw of stream) {
 
 if (
-  res.destroyed ||
-  res.writableEnded
+res.destroyed ||
+res.writableEnded
 ) {
-  break;
+break;
 }
 
-const token =
-  String(tokenRaw || "");
+let token = "";
 
-if (!token.trim()) {
-  continue;
+
+// OPENAI
+
+if (typeof tokenRaw === "string") {
+
+token = tokenRaw;
+
+}
+
+// GROQ
+
+else if (
+tokenRaw?.choices?.[0]?.delta?.content
+) {
+
+token =
+tokenRaw.choices[0]
+.delta.content;
+
+}
+
+// GEMINI
+
+else if (
+tokenRaw?.text
+) {
+
+token = tokenRaw.text;
+
+}
+
+// FALLBACK
+
+else {
+
+token = String(
+tokenRaw ?? ""
+);
+
+}
+
+if (
+typeof token !== "string"
+) {
+
+continue;
+
+}
+
+if (
+token.length === 0
+) {
+
+continue;
+
 }
 
 hasResponse = true;
@@ -1356,22 +1411,21 @@ chunk += token;
 
 if (
 
-chunk.length > 40 ||
+chunk.length > 20 ||
 
 token.includes("\n")
 
-)
- {
+) {
 
-  send(
-    res,
-    "text",
-    chunk
-  );
+send(
+res,
+"text",
+chunk
+);
 
-  chunk = "";
+chunk = "";
+
 }
-
 }
 
 } catch (streamErr) {
@@ -1392,21 +1446,6 @@ send(
   "⚠️ Stream interrupted."
 );
 }
-}
-
-
-
-// ======================================
-// SEND REMAINING
-// ======================================
-
-if (chunk.trim()) {
-
-  send(
-    res,
-    "text",
-    chunk
-  );
 }
 
 // ======================================

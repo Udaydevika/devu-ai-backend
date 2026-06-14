@@ -97,7 +97,7 @@ Be:
 
       temperature: 0.7,
 
-      max_tokens: 1024,
+      max_completion_tokens: 1024,
     });
 
   // ======================================
@@ -114,6 +114,11 @@ Be:
         const chunk of stream
       ) {
 
+        console.log(
+"🔥 GROQ CHUNK:",
+JSON.stringify(chunk)
+);
+
         const token =
 
           chunk
@@ -126,14 +131,22 @@ Be:
         // ======================================
 
         if (
-          typeof token ===
-          "string"
-        ) {
 
-          hasToken = true;
+typeof token === "string" &&
 
-          yield token;
-        }
+token.trim().length > 0
+
+) {
+
+  console.log(
+    "🔥 TOKEN:",
+    token
+  );
+
+  hasToken = true;
+
+  yield token;
+}
       }
 
       // ======================================
