@@ -6,6 +6,7 @@ import os from "os";
 import FormData from "form-data";
 import fetch from "node-fetch";
 
+
 /**
  * ==========================================
  * 🔥 DevU AI FINAL AUDIO TOOL
@@ -213,10 +214,34 @@ const fileUrl =
     let text =
       data?.text?.trim() || "";
 
-      console.log(
+        console.log(
   "📝 TRANSCRIPT:",
   text.substring(0, 200)
 );
+
+     let finalText = text;
+
+const promptMode =
+String(userPrompt || "")
+.toLowerCase()
+.trim();
+
+if (
+
+promptMode.includes("summary") ||
+
+promptMode.includes("summarize")
+
+){
+
+finalText =
+text.length > 2000
+
+? text.slice(0,2000)
+
+: text;
+
+}
 
       // ======================================
 // UTF-8 CLEANUP
@@ -236,28 +261,23 @@ text = text.replace(
     // ======================================
     // SMART PROMPT MODES
     // ======================================
-    const p =
-      String(userPrompt || "")
-        .toLowerCase()
-        .trim();
-
     if (
-      p.includes("summary") ||
-      p.includes("summarize")
-    ) {
-     text =
-  text.length > 2000
-    ? text.slice(0, 2000) + "\n\n...[truncated]"
-    : text;
-    }
 
-    if (
-      p.includes("translate")
-    ) {
-      text =
-        `🌍 Translation / Transcript:\n\n${text}`;
-    }
+promptMode.includes("summary") ||
 
+promptMode.includes("summarize")
+
+) {
+
+finalText =
+finalText.length > 2000
+
+? finalText.slice(0,2000)
++ "\n\n...[truncated]"
+
+: finalText;
+
+}
     // ======================================
 // FINAL STRUCTURED RESPONSE
 // ======================================
@@ -269,13 +289,12 @@ console.log(
 
 return {
   type: "audio",
+
   url: fileUrl,
-  transcript:
-    text ||
-    "Audio processed.",
-  text:
-    text ||
-    "Audio processed.",
+
+  transcript: text,
+
+  text: finalText,
 };
 
   } catch (err) {
