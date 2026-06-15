@@ -555,25 +555,6 @@ ai?.constructor?.name
 
       let text = "";
 
-     const stream =
-ai?.stream || ai;
-
-if (
-
-!stream ||
-
-typeof stream[
-Symbol.asyncIterator
-] !== "function"
-
-){
-
-throw new Error(
-"Invalid Gemini stream"
-);
-
-}
-
 const stream =
   ai?.stream || ai;
 
@@ -858,28 +839,6 @@ summaryAI?.constructor?.name
 );
 
   let summary = "";
-
-  const summaryStream =
-
-summaryAI?.stream ||
-
-summaryAI;
-
-if(
-
-!summaryStream ||
-
-typeof summaryStream[
-Symbol.asyncIterator
-] !== "function"
-
-){
-
-throw new Error(
-"Summary AI failed"
-);
-
-}
 
 const summaryStream =
 
