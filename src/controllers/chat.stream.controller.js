@@ -238,27 +238,13 @@ export const chatStreamController = [
     // CLIENT DISCONNECT
     // =====================================
 
-    req.on("close", () => {
-  console.log("🔌 Client disconnected");
-  clearInterval(ping);
+  req.on("aborted", () => {
 
-      try {
+console.log("🔌 Client aborted");
 
-        if (
-          !res.writableEnded &&
-          !res.destroyed
-        ) {
+clearInterval(ping);
 
-        }
-
-      } catch (err) {
-
-        console.error(
-          "CLOSE ERROR:",
-          err.message
-        );
-      }
-    });
+});
 
     try {
 
@@ -759,7 +745,7 @@ result =
   await handleVision(
     {
       buffer: file.buffer,
-      mimetype: file.mimetype,
+      mimetype: file.mimeType,
       originalname:
         file.originalname ||
         file.name,
@@ -955,10 +941,32 @@ else if (
     console.log("🚀 STARTING VIDEO");
 
 const out =
-  await handleVideo(
-    file,
-    prompt
-  );
+await handleVideo(
+file,
+prompt
+);
+
+console.log(
+"🎬 VIDEO RESULT:",
+out
+);
+
+if(!out){
+
+send(
+res,
+"text",
+
+"⚠ Video failed"
+
+);
+
+return done(
+res,
+ping
+);
+
+}
 
 console.log("✅ VIDEO RESULT:", out);
 

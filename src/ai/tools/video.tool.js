@@ -108,22 +108,46 @@ function saveBuffer(
     buffer
   );
 
+  // 🔥 ADD THESE LOGS
+
   console.log(
-    "✅ VIDEO SAVED:",
+    "💾 FILE NAME:",
+    cleanName
+  );
+
+  console.log(
+    "💾 FULL PATH:",
     fullPath
   );
 
   console.log(
-    "✅ EXISTS:",
+    "💾 EXISTS:",
     fs.existsSync(fullPath)
   );
+
+  if (fs.existsSync(fullPath)) {
+
+    console.log(
+      "💾 FILE SIZE:",
+      fs.statSync(fullPath).size
+    );
+
+  }
 
   console.log(
     "📂 PUBLIC DIR:",
     PUBLIC_DIR
   );
 
-  return makePublicUrl(cleanName);
+  const url =
+    makePublicUrl(cleanName);
+
+  console.log(
+    "🌍 VIDEO URL:",
+    url
+  );
+
+  return url;
 }
 // ==========================================
 // ⏱️ TIMEOUT PROTECTION
@@ -187,7 +211,7 @@ export async function handleVideo(
           file.originalname,
 
         mime:
-          file.mimetype,
+          file.mimeType,
 
         size:
           file.size,
@@ -361,26 +385,49 @@ try {
     `viral_${Date.now()}.mp4`;
 
   const finalPath =
-    path.join(
-      PUBLIC_DIR,
-      fileName
-    );
+path.join(
+PUBLIC_DIR,
+fileName
+);
 
-  fs.copyFileSync(
-    captioned,
-    finalPath
-  );
+fs.copyFileSync(
+captioned,
+finalPath
+);
 
-  return {
-    type: "video",
+console.log(
+"🔥 VIRAL PATH:",
+finalPath
+);
 
-    url:
-      makePublicUrl(fileName),
+console.log(
+"🔥 EXISTS:",
+fs.existsSync(finalPath)
+);
 
-    text:
-      "🎬 Viral reel created.",
-  };
+console.log(
+"🔥 SIZE:",
+fs.statSync(finalPath).size
+);
 
+const url =
+makePublicUrl(fileName);
+
+console.log(
+"🔥 URL:",
+url
+);
+
+return {
+
+type:"video",
+
+url:url,
+
+text:
+"🎬 Viral reel created."
+
+};
 } finally {
 
   safeDelete(reelTemp);
@@ -500,19 +547,31 @@ try {
           )
         );
 
+        console.log(
+"🧠 GEMINI RESPONSE:",
+typeof ai,
+ai?.constructor?.name
+);
+
       let text = "";
 
-      if (
-  !ai ||
-  !ai.stream ||
-  typeof ai.stream[
-    Symbol.asyncIterator
-  ] !== "function"
-) {
+     const stream =
+ai?.stream || ai;
 
-  throw new Error(
-    "Invalid Gemini stream"
-  );
+if (
+
+!stream ||
+
+typeof stream[
+Symbol.asyncIterator
+] !== "function"
+
+){
+
+throw new Error(
+"Invalid Gemini stream"
+);
+
 }
 
 const stream =
@@ -744,8 +803,10 @@ try {
     let text = "";
 
     const stream =
-  ai?.stream;
 
+ai?.stream ||
+
+ai;
 if (
   !stream ||
   typeof stream[
@@ -790,20 +851,41 @@ ${notes.join("\n").slice(0, 4000)}`,
       ])
     );
 
+    console.log(
+"🧠 SUMMARY RESPONSE:",
+typeof summaryAI,
+summaryAI?.constructor?.name
+);
+
   let summary = "";
 
-  if (
-  !summaryAI ||
-  !summaryAI.stream
-) {
+  const summaryStream =
 
-  throw new Error(
-    "Summary AI failed"
-  );
+summaryAI?.stream ||
+
+summaryAI;
+
+if(
+
+!summaryStream ||
+
+typeof summaryStream[
+Symbol.asyncIterator
+] !== "function"
+
+){
+
+throw new Error(
+"Summary AI failed"
+);
+
 }
 
 const summaryStream =
-  summaryAI?.stream;
+
+summaryAI?.stream ||
+
+summaryAI;
 
 if (
   summaryStream &&
@@ -824,23 +906,40 @@ if (
 }
 
   const fileName =
-  `video_${Date.now()}${ext}`;
+`video_${Date.now()}${ext}`;
 
 const videoUrl =
-  saveBuffer(
-    videoBuffer,
-    fileName
-  );
+saveBuffer(
+  videoBuffer,
+  fileName
+);
+
+console.log(
+  "🎬 FINAL VIDEO:",
+  videoUrl
+);
+
+console.log(
+  "🎬 FILE NAME:",
+  fileName
+);
 
 return {
+
   type: "video",
+
   url: videoUrl,
+
   text:
+
 summary
+
 ? `🎬 Video Analysis Complete
 
 ${summary}`
+
 : "🎬 Video analyzed."
+
 };
 
 } finally {
@@ -856,20 +955,38 @@ ${summary}`
   );
 
   const fileName =
-    `video_${Date.now()}.mp4`;
+`video_${Date.now()}.mp4`;
 
-  const videoUrl =
-    saveBuffer(
-      videoBuffer,
-      fileName
-    );
+const videoUrl =
+saveBuffer(
+  videoBuffer,
+  fileName
+);
 
-  return {
-    type: "video",
-    url: videoUrl,
-    text:
-      "🎬 Video uploaded successfully.",
-  };
+console.log(
+  "🎬 FALLBACK VIDEO:",
+  videoUrl
+);
+
+return {
+
+type: "video",
+
+url: videoUrl,
+
+text:
+
+err?.message
+
+? `🎬 Video uploaded.
+
+Reason:
+
+${err.message}`
+
+: "🎬 Video uploaded successfully."
+
+};
 } finally {
 
     safeDelete(tempPath);
