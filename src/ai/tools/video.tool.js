@@ -38,7 +38,6 @@ const PUBLIC_DIR = path.join(
   "public",
   "generated"
 );
-
 const BASE_URL =
 process.env.PUBLIC_URL?.replace(/\/$/, "")
 || "https://devu-ai.onrender.com";
@@ -548,6 +547,36 @@ text:
         );
 
         console.log(
+
+"🧠 GEMINI RESULT:",
+
+JSON.stringify(
+
+{
+
+text:
+
+ai?.text,
+
+hasStream:
+
+!!ai?.stream,
+
+model:
+
+ai?.usedModel
+
+},
+
+null,
+
+2
+
+)
+
+);
+
+        console.log(
 "🧠 GEMINI RESPONSE:",
 typeof ai,
 ai?.constructor?.name
@@ -783,17 +812,20 @@ try {
 
     let text = "";
 
-    const stream =
+const geminiStream =
+  ai?.stream;
 
-ai?.stream ||
-
-ai;
 if (
-  !stream ||
-  typeof stream[
+
+  !geminiStream ||
+
+  typeof geminiStream[
     Symbol.asyncIterator
   ] !== "function"
+
 ) {
+
+  console.log(ai);
 
   throw new Error(
     "Invalid Gemini stream"
@@ -801,12 +833,19 @@ if (
 }
 
 for await (
-  const token of stream
+
+  const token
+
+  of geminiStream
+
 ) {
 
   text +=
+
     typeof token === "string"
+
       ? token
+
       : token?.text || "";
 }
 
